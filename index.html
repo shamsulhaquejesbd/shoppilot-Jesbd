@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>shoPPilot IMS - Supabase Inventory System</title>
+    <meta name="description" content="shoPPilot Inventory & Retail Management System migrated to Supabase PostgreSQL.">
+    <meta property="og:title" content="shoPPilot IMS - Supabase Inventory System">
+    <meta property="og:description" content="shoPPilot Inventory & Retail Management System migrated to Supabase PostgreSQL.">
+
+    <!-- External Dependencies -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Segoe+UI&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- shoPPilot Stylesheet -->
+    <link rel="stylesheet" href="/src/shoppilot.css">
+</head>
+<body>
+
+    <!-- Floating Action Button for Mobile -->
+    <button id="mobileMenuBtn" onclick="toggleMobileMenu()" type="button">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <div class="container-fluid">
+        <div class="main-container">
+
+            <!-- 1. AUTHENTICATION VIEW (SHOWN IF LOGGED OUT) -->
+            <div id="authView" style="display: none; width: 100vw; height: 100vh; align-items: center; justify-content: center; background: #f8fafc;">
+                <div style="background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); width: 100%; max-width: 400px; text-align: center;">
+                    <div style="background: #4361ee; width: 60px; height: 60px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; color: white; font-size: 1.8rem;">
+                        <i class="fas fa-store"></i>
+                    </div>
+                    <h1 id="authCompanyTitle" style="font-size: 1.5rem; color: #1e293b; font-weight: 800; margin-bottom: 4px;">
+                         shoPPilot
+                    </h1>
+                    <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 25px;">Inventory & Retail Management (Supabase)</p>
+
+                    <div id="loginErrorMsg" style="color: #ef4444; font-size: 0.85rem; margin-bottom: 15px; display: none; background: #fee2e2; padding: 8px; border-radius: 6px;"></div>
+
+                    <div class="form-group" style="text-align: left;">
+                        <label>User ID</label>
+                        <input type="text" id="authUserId" class="form-control" placeholder="e.g. U0001" value="U0001" required>
+                    </div>
+
+                    <div class="form-group" style="text-align: left;">
+                        <label>Password</label>
+                        <div style="position: relative;">
+                            <input type="password" id="authPassword" class="form-control" placeholder="••••••••" value="admin123" required>
+                            <i class="far fa-eye" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #94a3b8;" onclick="toggleAuthPassword()"></i>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" id="btnSignIn" onclick="handleLoginSubmit()" style="width: 100%; padding: 12px; font-weight: 700; margin-top: 10px;">
+                        Sign In
+                    </button>
+
+                    <div style="margin-top: 15px;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="openSupabaseConfigModal()" style="font-size: 0.75rem; width: 100%;">
+                            <i class="fas fa-database"></i> Supabase Connection Settings
+                        </button>
+                    </div>
+
+                    <p style="margin-top: 25px; font-size: 0.75rem; color: #94a3b8; letter-spacing: 0.05em; text-transform: uppercase;">
+                        © 2026 SHOPPILOT SYSTEMS LTD.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 2. SIDEBAR NAVIGATION -->
+            <nav class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    <div class="logo-area">
+                        <i class="fas fa-shopping-bag logo-icon" style="color: #3b82f6;"></i>
+                        <span class="logo-text" id="sidebarLogoText" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; font-weight: 800; font-size: 1.35rem; letter-spacing: -0.5px;">
+                            <span style="color: #1e293b;">My</span><span style="color: #3b82f6;">Stics</span>
+                        </span>
+                    </div>
+                    <button type="button" id="sidebarToggle" onclick="toggleSidebar()">
+                        <i class="fas fa-chevron-left" id="toggleIcon"></i>
+                    </button>
+                </div>
+
+                <div class="menu-container">
+                    <a class="nav-link active" onclick="switchAppView('dashboard')">
+                        <i class="fas fa-th-large"></i><span>Dashboard</span>
+                    </a>
+                    <a class="nav-link" onclick="switchAppView('warehouse_info')">
+                        <i class="fas fa-warehouse"></i><span>Warehouse Info</span>
+                    </a>
+                    <a class="nav-link" onclick="switchAppView('inventory')">
+                        <i class="fas fa-box-open"></i><span>Inventory</span>
+                    </a>
+                    <a class="nav-link" onclick="switchAppView('products')">
+                        <i class="fas fa-boxes"></i><span>Products</span>
+                    </a>
+                    <a class="nav-link" onclick="switchAppView('sales')">
+                        <i class="fas fa-shopping-cart"></i><span>Sales</span>
+                    </a>
+                    <a class="nav-link" onclick="switchAppView('returns')">
+                        <i class="fas fa-undo-alt"></i><span>Sales Returns</span>
+                    </a>
+                    <a class="nav-link" onclick="switchAppView('purchases')">
+                        <i class="fas fa-history"></i><span>Purchases</span>
+                    </a>
+                    <a class="nav-link" onclick="switchAppView('purchase_returns')">
+                        <i class="fas fa-truck-loading"></i><span>Purchase Returns</span>
+                    </a>
+                    <a class="nav-link" onclick="switchAppView('customers')">
+                        <i class="fas fa-users"></i><span>Customers</span>
+                    </a>
+                    <a class="nav-link" onclick="switchAppView('suppliers')">
+                        <i class="fas fa-truck-loading"></i><span>Suppliers</span>
+                    </a>
+                    <a class="nav-link" onclick="switchAppView('deposits')">
+                        <i class="fas fa-money-check-alt"></i><span>Cash Book/Exp</span>
+                    </a>
+                    <a class="nav-link" onclick="switchAppView('reports')">
+                        <i class="fas fa-chart-bar"></i><span>Reports</span>
+                    </a>
+                    
+                    <div class="sidebar-divider">SYSTEM</div>
+                    
+                    <a class="nav-link" onclick="switchAppView('settings')">
+                        <i class="fas fa-cog"></i><span>Settings</span>
+                    </a>
+                    <a class="nav-link" onclick="switchAppView('users')">
+                        <i class="fas fa-user-shield"></i><span>User Roles</span>
+                    </a>
+                    <a class="nav-link" onclick="openSupabaseConfigModal()" style="display: none !important;">
+                        <i class="fas fa-database"></i><span>Supabase Config</span>
+                    </a>
+                </div>
+
+                <div class="sidebar-footer">
+                    <div class="user-card">
+                        <div class="user-avatar">A</div>
+                        <div class="user-info">
+                            <span class="user-name">Admin Operator</span>
+                            <button type="button" class="logout-link" onclick="openLogoutModal()">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- 3. MAIN APPLICATION VIEWS CONTAINER -->
+            <main class="main-content">
+
+                <!-- VIEW: DASHBOARD -->
+                <section id="view_dashboard" class="view-section active-view">
+                    <div class="page-header">
+                        <div>
+                            <h1><i class="fas fa-tachometer-alt"></i> Dashboard</h1>
+                            <p class="subtitle">Powered by Supabase PostgreSQL Database</p>
+                        </div>
+                        <div style="display:flex; gap:10px;">
+                            <button type="button" class="btn btn-secondary" onclick="openSupabaseConfigModal()" style="display: none !important;">
+                                <i class="fas fa-database" style="color: #3ecf8e;"></i> Supabase DB
+                            </button>
+                            <button type="button" class="btn btn-primary" onclick="openDocLookupModal()" style="height: 42px; padding: 0 20px; font-weight: 700; border-radius: 10px; background: #4361ee; box-shadow: 0 4px 12px rgba(67, 97, 238, 0.25);">
+                                <i class="fas fa-search"></i> Universal Lookup
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="kpi-grid-8" id="kpiCards">
+                        <div class="kpi-card"><div class="kpi-icon-sm" style="background:var(--success)"><i class="fas fa-shopping-cart"></i></div><div class="kpi-content"><p>Today Sales</p><div class="kpi-value-sm" id="todaySales">৳ 0</div></div></div>
+                        <div class="kpi-card"><div class="kpi-icon-sm" style="background:var(--info)"><i class="fas fa-truck-loading"></i></div><div class="kpi-content"><p>Today Purch.</p><div class="kpi-value-sm" id="todayPurchases">৳ 0</div></div></div>
+                        <div class="kpi-card"><div class="kpi-icon-sm" style="background:var(--primary)"><i class="fas fa-chart-line"></i></div><div class="kpi-content"><p>Today Profit</p><div class="kpi-value-sm" id="todayProfit">৳ 0</div></div></div>
+                        <div class="kpi-card"><div class="kpi-icon-sm" style="background:var(--secondary)"><i class="fas fa-exchange-alt"></i></div><div class="kpi-content"><p>Today Trans.</p><div class="kpi-value-sm" id="todayTransactions">0</div></div></div>
+                        <div class="kpi-card"><div class="kpi-icon-sm" style="background:var(--secondary)"><i class="fas fa-wallet"></i></div><div class="kpi-content"><p>Month Sales</p><div class="kpi-value-sm" id="monthSales">৳ 0</div></div></div>
+                        <div class="kpi-card"><div class="kpi-icon-sm" style="background:var(--warning)"><i class="fas fa-shopping-bag"></i></div><div class="kpi-content"><p>Month Purch.</p><div class="kpi-value-sm" id="monthPurchases">৳ 0</div></div></div>
+                        <div class="kpi-card"><div class="kpi-icon-sm" style="background:var(--info)"><i class="fas fa-coins"></i></div><div class="kpi-content"><p>Month Profit</p><div class="kpi-value-sm" id="monthProfit">৳ 0</div></div></div>
+                        <div class="kpi-card"><div class="kpi-icon-sm" style="background:var(--dark)"><i class="fas fa-list-check"></i></div><div class="kpi-content"><p>Month Trans.</p><div class="kpi-value-sm" id="monthTransactions">0</div></div></div>
+                    </div>
+                    
+                    <div class="chart-grid">
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <h3><i class="fas fa-chart-bar"></i> Sales vs Purchase Trend</h3>
+                                <select id="chartPeriod" class="form-control" style="width: auto;" onchange="loadChartsData()">
+                                    <option value="7">Last 7 Days</option>
+                                    <option value="30">Last 30 Days</option>
+                                </select>
+                            </div>
+                            <div class="chart-container"><canvas id="salesChart"></canvas></div>
+                        </div>
+                        <div class="chart-card">
+                            <div class="chart-header"><h3><i class="fas fa-chart-pie"></i> Category Sales</h3></div>
+                            <div class="chart-container"><canvas id="categoryChart"></canvas></div>
+                        </div>
+                    </div>
+
+                    <div class="chart-grid" style="margin-top: 1rem;">
+                        <div class="chart-card">
+                            <div class="chart-header"><h3><i class="fas fa-bolt"></i> Quick Actions</h3></div>
+                            <div class="action-buttons">
+                                <button class="btn-action qa-sale" onclick="openQuickSale()"><i class="fas fa-cart-plus"></i><span>Quick Sale</span></button>
+                                <button class="btn-action qa-purchase" onclick="openQuickPurchase()"><i class="fas fa-truck"></i><span>Quick Purchase</span></button>
+                                <button class="btn-action qa-stock" onclick="switchAppView('inventory')"><i class="fas fa-boxes"></i><span>Stock</span></button>
+                                <button class="btn-action qa-report" onclick="switchAppView('reports')"><i class="fas fa-file-export"></i><span>Reports</span></button>
+                            </div>
+                        </div>
+
+                        <div class="chart-card">
+                            <div class="chart-header"><h3><i class="fas fa-hand-holding-usd"></i> Financial Debt (Receivables)</h3></div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <div class="kpi-card" style="border-bottom: 4px solid var(--danger); width: 100%; align-items: start; padding: 15px;">
+                                    <div class="kpi-icon-sm" style="background:var(--danger)"><i class="fas fa-money-bill-wave"></i></div>
+                                    <div class="kpi-content" style="text-align: left;">
+                                        <p style="font-size: 0.7rem;">Total Outstanding</p>
+                                        <div class="kpi-value-sm" id="totalDues" style="font-size: 1.3rem;">৳ 0</div>
+                                    </div>
+                                </div>
+                                <div class="kpi-card" style="border-bottom: 4px solid var(--warning); width: 100%; align-items: start; padding: 15px;">
+                                    <div class="kpi-icon-sm" style="background:var(--warning)"><i class="fas fa-users"></i></div>
+                                    <div class="kpi-content" style="text-align: left;">
+                                        <p style="font-size: 0.7rem;">Active Creditors</p>
+                                        <div class="kpi-value-sm" id="creditedCount" style="font-size: 1.3rem;">0</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chart-grid" style="margin-top: 1rem;">
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <h3><i class="fas fa-exclamation-triangle"></i> Low Stock Alerts</h3>
+                                <button class="btn btn-primary btn-sm" onclick="switchAppView('inventory')">Inventory</button>
+                            </div>
+                            <div id="lowStockListContainer"><div class="loading"><p style="padding:10px; color:#94a3b8;">Checking stock levels...</p></div></div>
+                        </div>
+
+                        <div class="chart-card">
+                            <div class="chart-header"><h3><i class="fas fa-crown"></i> Top Products (This Month)</h3></div>
+                            <div id="topProducts" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; padding: 10px;">
+                                <p style="grid-column: span 2; text-align: center; color:#94a3b8;">Loading sales statistics...</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: WAREHOUSE INFO & ANALYTICS -->
+                <section id="view_warehouse_info" class="view-section">
+                    <div class="page-header" style="margin-bottom: 1.5rem;">
+                        <div style="display: flex; align-items: center; gap: 14px;">
+                            <span style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; background: #3b82f6; color: white; border-radius: 10px; font-size: 1.35rem; flex-shrink: 0; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.25);">
+                                <i class="fas fa-warehouse"></i>
+                            </span>
+                            <div>
+                                <h1 style="font-size: 1.65rem; font-weight: 800; color: #1e293b; margin: 0; line-height: 1.2;">Warehouse Info & Analytics</h1>
+                                <p class="subtitle" style="margin: 4px 0 0; color: #64748b; font-size: 0.88rem;">Inventory valuation in cost price, stock levels, and category breakdown</p>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="loadWarehouseInfoData()" style="background: #3b82f6; border: none; border-radius: 8px; padding: 10px 18px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);">
+                            <i class="fas fa-sync-alt"></i> Refresh Data
+                        </button>
+                    </div>
+
+                    <!-- Top Row: Total Summary on Left, 2x2 Warehouses on Right -->
+                    <div class="wh-analytics-row">
+                        <div id="totalWarehouseSummaryCard" style="min-width: 0;">
+                            <!-- Injected by shoppilot.js -->
+                        </div>
+                        <div id="whMergedCardsGrid" class="wh-cards-grid">
+                            <!-- Injected by shoppilot.js -->
+                        </div>
+                    </div>
+
+                    <!-- Bottom Row: 2 Analytics Charts Side-by-Side -->
+                    <div class="wh-charts-bottom-layout">
+                        <div class="wh-chart-card">
+                            <div class="wh-chart-header">
+                                <i class="fas fa-chart-bar" style="color: #10b981; font-size: 1.05rem;"></i>
+                                <h3>Stock Level by Category & Warehouse</h3>
+                            </div>
+                            <div style="position: relative; height: 320px; width: 100%;">
+                                <canvas id="whCategoryBarChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="wh-chart-card">
+                            <div class="wh-chart-header">
+                                <i class="fas fa-chart-pie" style="color: #f97316; font-size: 1.05rem;"></i>
+                                <h3>Warehouse Value Share</h3>
+                            </div>
+                            <div style="position: relative; height: 320px; width: 100%; display: flex; align-items: center; justify-content: center;">
+                                <canvas id="whValueSharePieChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: INVENTORY -->
+                <section id="view_inventory" class="view-section">
+                    <div class="page-header">
+                        <div>
+                            <h1><i class="fas fa-box-open"></i> Inventory Stock Levels</h1>
+                            <p class="subtitle">Monitor stock balance matrix across warehouses</p>
+                        </div>
+                        <div style="display:flex; gap:10px;">
+                            <button class="btn btn-success" onclick="openTransferModal()"><i class="fas fa-exchange-alt"></i> Transfer Stock</button>
+                            <button class="btn btn-primary" onclick="loadInventoryData()"><i class="fas fa-sync-alt"></i> Refresh</button>
+                        </div>
+                    </div>
+
+                    <div class="inventory-filter-bar">
+                        <div class="filter-item">
+                            <label><i class="fas fa-search"></i> Search Product</label>
+                            <input type="text" id="invSearchName" class="form-control" placeholder="Search name or ID..." onkeyup="handleInventoryFilters()">
+                        </div>
+                        <div class="filter-item">
+                            <label><i class="fas fa-tags"></i> Category</label>
+                            <select id="invFilterCategory" class="form-control" onchange="handleInventoryFilters()"></select>
+                        </div>
+                        <div class="filter-item">
+                            <label><i class="fas fa-copyright"></i> Brand</label>
+                            <select id="invFilterBrand" class="form-control" onchange="handleInventoryFilters()"></select>
+                        </div>
+                        <div class="filter-item">
+                            <label>&nbsp;</label>
+                            <button class="btn btn-secondary" onclick="resetInvFilters()" style="height: 42px; width: 100%;"><i class="fas fa-undo"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <div class="table-responsive">
+                            <table class="custom-table">
+                                <thead id="inventoryTableHead"></thead>
+                                <tbody id="inventoryTableBody"><tr><td colspan="10" class="text-center">Loading stock data...</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: PRODUCTS -->
+                <section id="view_products" class="view-section">
+                    <div class="page-header">
+                        <div>
+                            <h1><i class="fas fa-boxes"></i> Product Catalog</h1>
+                            <p class="subtitle">Manage master products, carton units, and pricing</p>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="text" id="productSearchInput" class="form-control" placeholder="Search product..." onkeyup="handleProductSearch()" style="width: 250px;">
+                            <button class="btn btn-primary" onclick="openProductModal()"><i class="fas fa-plus"></i> Add Product</button>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <div class="table-responsive">
+                            <table class="custom-table">
+                                <thead>
+                                    <tr><th>ID</th><th>Product Name</th><th>Category</th><th>Brand</th><th>UPC</th><th>Stock</th><th>Unit Price</th><th>Sale Price</th><th>MRP</th><th>Status</th><th>Actions</th></tr>
+                                </thead>
+                                <tbody id="productTableBody"><tr><td colspan="11" class="text-center">Loading products...</td></tr></tbody>
+                            </table>
+                        </div>
+                        <div class="pagination-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 15px 25px; border-top: 1px solid #f1f5f9;">
+                            <div class="pagination-info">Showing <span id="prodStartRange">0</span> to <span id="prodEndRange">0</span> of <span id="prodTotalItems">0</span> products</div>
+                            <div class="pagination-buttons">
+                                <button class="btn btn-secondary btn-sm" id="prodPrevBtn" onclick="changeProdPage(-1)" disabled><i class="fas fa-chevron-left"></i></button>
+                                <button class="btn btn-secondary btn-sm" id="prodNextBtn" onclick="changeProdPage(1)" disabled><i class="fas fa-chevron-right"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: SALES (POS) -->
+                <section id="view_sales" class="view-section">
+                    <!-- Top Bar matching Image 1 & 2 -->
+                    <div class="pos-top-bar-exact">
+                        <div class="pos-top-item pos-memo-wrap">
+                            <input type="text" id="posMemoNo" class="form-control pos-input-clean" placeholder="Memo No...">
+                        </div>
+                        <div class="pos-top-item pos-date-wrap">
+                            <input type="date" id="posSaleDate" class="form-control pos-input-clean">
+                        </div>
+                        <div class="pos-top-item pos-cust-wrap">
+                            <div class="pos-cust-inline-group">
+                                <input type="text" id="posCustomerInput" class="form-control pos-input-clean" list="customerListOptions" placeholder="Customer" value="WALK-IN">
+                                <datalist id="customerListOptions"></datalist>
+                                <button type="button" class="btn-cust-plus" onclick="switchAppView('customers')" title="Add New Customer">+</button>
+                            </div>
+                        </div>
+                        <div class="pos-top-item pos-search-wrap" style="position: relative;">
+                            <div class="pos-search-inner">
+                                <input type="text" id="posProductSearch" class="form-control pos-input-clean pos-search-field" 
+                                       placeholder="Type Product Name or Scan..." 
+                                       autocomplete="off"
+                                       onfocus="openPosProductDropdown()" 
+                                       onclick="openPosProductDropdown()"
+                                       oninput="filterPosProductDropdown(this.value)" 
+                                       onkeydown="handlePosProductKeydown(event)">
+                                <i class="fas fa-caret-down pos-search-arrow" onclick="togglePosProductDropdown(event)"></i>
+                            </div>
+                            <!-- Dark Floating Product Dropdown (Image 1) -->
+                            <div id="posProductDropdown" class="pos-dark-dropdown" style="display: none;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Main Sales Container: Left Cart + Right Checkout -->
+                    <div class="pos-main-grid">
+                        <div class="pos-cart-card">
+                            <div class="table-responsive">
+                                <table class="pos-cart-table-exact">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 38%;">ITEM & WAREHOUSE</th>
+                                            <th style="width: 15%;">STK</th>
+                                            <th style="width: 13%;">PRICE</th>
+                                            <th style="width: 18%;">QTY</th>
+                                            <th style="width: 8%;"><span style="color: #16a34a;"><i class="fas fa-gift"></i> FREE</span></th>
+                                            <th style="width: 8%; text-align: right;">TOTAL</th>
+                                            <th style="width: 2%;"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="posCartTableBody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="checkout-panel-exact">
+                            <h3 class="checkout-title">Checkout</h3>
+                            
+                            <div class="checkout-row">
+                                <span class="checkout-label">Subtotal</span>
+                                <span class="checkout-val" id="posTxtSubtotal">৳ 0</span>
+                            </div>
+
+                            <div class="checkout-row checkout-discount-row">
+                                <span class="checkout-label">Discount</span>
+                                <div class="discount-input-group">
+                                    <input type="number" id="posInpDisc" value="0" min="0" class="disc-num-input" oninput="recalculatePos()">
+                                    <select id="posTypDisc" onchange="recalculatePos()" class="disc-type-select">
+                                        <option value="val">৳</option>
+                                        <option value="per">%</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Big Blue Grand Total Display Box -->
+                            <div class="grand-total-box-exact" id="posTxtGrandTotal">0</div>
+
+                            <div class="checkout-paymode-wrap">
+                                <label class="paymode-label">Payment Mode</label>
+                                <select id="posPayMode" class="form-control paymode-select">
+                                    <option value="Credit (Due)" selected>Credit (Due)</option>
+                                    <option value="Cash">Cash</option>
+                                    <option value="Bank">Bank</option>
+                                    <option value="Bkash">Bkash</option>
+                                </select>
+                            </div>
+
+                            <button type="button" class="btn-complete-sale" id="posBtnPay" onclick="submitPosSale()">
+                                <i class="fas fa-check-circle"></i> <span>Complete Sale</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Recent Sales History Table Card (Bottom) -->
+                    <div class="recent-sales-card">
+                        <div class="recent-sales-title">
+                            <i class="fas fa-history" style="color: #0f172a;"></i> Recent Sales History
+                        </div>
+                        <div class="table-responsive">
+                            <table class="recent-sales-table-exact">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>DATE</th>
+                                        <th>CUSTOMER</th>
+                                        <th>RETURN AMT</th>
+                                        <th>AMOUNT</th>
+                                        <th>PAYMENT</th>
+                                        <th style="text-align: center;">ACTION</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="posRecentSalesBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: PURCHASES -->
+                <section id="view_purchases" class="view-section">
+                    <div class="page-header">
+                        <div>
+                            <h1><i class="fas fa-history"></i> Purchase Inbound</h1>
+                            <p class="subtitle">Record supplier procurements and new batch arrivals</p>
+                        </div>
+                        <button type="button" class="btn btn-primary" onclick="openQuickPurchase()"><i class="fas fa-plus"></i> New Purchase</button>
+                    </div>
+
+                    <!-- PURCHASE HISTORY SECTION -->
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div>
+                                <h3 style="font-weight: 800; color: #1e293b;"><i class="fas fa-history"></i> Purchase Inbound History</h3>
+                                <p class="subtitle" style="margin: 0; font-size: 0.8rem; color: #64748b;">All previous supplier purchase receipts and warehouse logs</p>
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="text" id="purchHistorySearch" class="form-control" placeholder="Search by ID, supplier, product..." oninput="filterPurchasesHistory(this.value)" style="width: 260px;">
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="custom-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Purchase ID</th>
+                                        <th>Supplier</th>
+                                        <th>Product Code</th>
+                                        <th>Product Name</th>
+                                        <th>Batch</th>
+                                        <th>Return Qty</th>
+                                        <th>Qty</th>
+                                        <th>Cost</th>
+                                        <th>Sale</th>
+                                        <th>MRP</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="purchaseTableBody">
+                                    <tr><td colspan="12" class="text-center">Loading purchases...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="pagination-bar" style="display:flex; justify-content:space-between; align-items:center; padding:12px 5px; margin-top:10px;">
+                            <span id="purchPaginationInfo" style="font-size:0.85rem; color:#64748b;">Showing records</span>
+                            <div style="display:flex; gap:6px;">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="changePurchPage(-1)"><i class="fas fa-chevron-left"></i> Prev</button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="changePurchPage(1)">Next <i class="fas fa-chevron-right"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: SALES RETURNS -->
+                <section id="view_returns" class="view-section">
+                    <div class="page-header">
+                        <div>
+                            <h1><i class="fas fa-undo-alt"></i> Sales Returns</h1>
+                            <p class="subtitle">Return sold items back to stock and reconcile dues</p>
+                        </div>
+                    </div>
+                    <div class="chart-card" style="padding: 25px; text-align: center; margin-bottom: 25px;">
+                        <label style="display:block; margin-bottom:10px; font-weight:700;">Enter Sales Invoice Number</label>
+                        <div style="display:flex; gap:10px; max-width:500px; margin:0 auto;">
+                            <input type="text" id="invSearchInput" class="form-control" placeholder="e.g. INV-2026-0001">
+                            <button class="btn btn-primary" onclick="fetchSalesInvoiceForReturn()"><i class="fas fa-search"></i> Search</button>
+                        </div>
+                    </div>
+                    <div id="invoiceReturnResultArea" style="display:none;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                            <div><small style="color:#64748b; font-weight:700;">CUSTOMER</small><p id="retDispCust" style="font-weight:800;">-</p></div>
+                            <div><small style="color:#64748b; font-weight:700;">DATE</small><p id="retDispDate" style="font-weight:800;">-</p></div>
+                        </div>
+                        <div id="salesReturnItemList"></div>
+                        <div style="background: white; border-radius: 14px; padding: 18px 25px; margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <span style="font-size: 0.85rem; color: #64748b; font-weight: 700;">Total Refund:</span>
+                                <div style="font-size: 1.4rem; font-weight: 900; color: #ef4444;" id="retTotalRefundText">৳ 0.00</div>
+                            </div>
+                            <button class="btn btn-danger" onclick="submitInvoiceSalesReturn()"><i class="fas fa-undo-alt"></i> Process Return</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: PURCHASE RETURNS -->
+                <section id="view_purchase_returns" class="view-section">
+                    <div class="page-header">
+                        <div>
+                            <h1><i class="fas fa-truck-loading" style="color: #4361ee;"></i> Purchase Returns</h1>
+                            <p class="subtitle">Return defective or overstocked inventory to suppliers</p>
+                        </div>
+                    </div>
+                    <div class="chart-card" style="padding: 25px; text-align: center; margin-bottom: 25px;">
+                        <label style="display:block; margin-bottom:10px; font-weight:700;">Enter Purchase ID</label>
+                        <div style="display:flex; gap:10px; max-width:500px; margin:0 auto;">
+                            <input type="text" id="purchRetSearchInput" class="form-control" placeholder="e.g. PO-001">
+                            <button class="btn btn-primary" onclick="alert('Purchase returns synchronized with inventory ledger.')"><i class="fas fa-search"></i> Search</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: CUSTOMERS -->
+                <section id="view_customers" class="view-section">
+                    <div class="page-header">
+                        <div>
+                            <h1><i class="fas fa-users"></i> Customer Management</h1>
+                            <p class="subtitle">Client dues, contact books, and bulk payments</p>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="customerSearchInput" class="form-control" placeholder="Search customer..." oninput="handleCustomerSearch()" style="width: 250px;">
+                            <button class="btn btn-primary" onclick="openCustomerModal()"><i class="fas fa-user-plus"></i> Add Customer</button>
+                        </div>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card"><div style="color:#64748b; font-weight:700;">Total Customers</div><div class="stat-value" id="totalCustomersCount">0</div></div>
+                        <div class="stat-card"><div style="color:#64748b; font-weight:700;">Total Outstanding Dues</div><div class="stat-value" id="totalOutstandingDues" style="color:var(--danger)">৳ 0.00</div></div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead><tr><th>ID</th><th>Name</th><th>Customer Type</th><th>Phone</th><th>Address</th><th>Current Due</th><th>Actions</th></tr></thead>
+                                <tbody id="customerTableBody"><tr><td colspan="7" class="text-center">Loading customers...</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: SUPPLIERS -->
+                <section id="view_suppliers" class="view-section">
+                    <div class="page-header">
+                        <div>
+                            <h1><i class="fas fa-truck-loading"></i> Supplier Management</h1>
+                            <p class="subtitle">Procurement vendors and contact details</p>
+                        </div>
+                        <button class="btn btn-primary" onclick="openSupplierModal()"><i class="fas fa-plus"></i> Add Supplier</button>
+                    </div>
+                    <div class="chart-card">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead><tr><th>ID</th><th>Supplier Name</th><th>Contact Person</th><th>Phone</th><th>Actions</th></tr></thead>
+                                <tbody id="supplierTableBody"><tr><td colspan="5" class="text-center">Loading suppliers...</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: CASH BOOK / DEPOSITS -->
+                <section id="view_deposits" class="view-section">
+                    <div class="page-header">
+                        <div>
+                            <h1><i class="fas fa-money-check-alt" style="color: #10b981;"></i> Cash Settlement & Deposits</h1>
+                            <p class="subtitle">Deposit collected customer cash to bank accounts or operational expenses</p>
+                        </div>
+                        <button class="btn btn-primary" onclick="loadDepositsView()"><i class="fas fa-sync-alt"></i> Refresh Balance</button>
+                    </div>
+
+                    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                        <div class="stat-card"><div style="color:#64748b; font-size:0.75rem; font-weight:800;">Opening Cash</div><div class="stat-value" id="cash_opening_val" style="color:#6366f1;">৳ 0</div></div>
+                        <div class="stat-card"><div style="color:#64748b; font-size:0.75rem; font-weight:800;">Cash in Hand</div><div class="stat-value" id="cash_in_hand_val" style="color:#10b981;">৳ 0</div></div>
+                        <div class="stat-card"><div style="color:#64748b; font-size:0.75rem; font-weight:800;">Total Collected</div><div class="stat-value" id="cash_total_collected_val" style="color:#4361ee;">৳ 0</div></div>
+                        <div class="stat-card"><div style="color:#64748b; font-size:0.75rem; font-weight:800;">Deposited to Banks</div><div class="stat-value" id="cash_total_banked_val" style="color:#0284c7;">৳ 0</div></div>
+                        <div class="stat-card"><div style="color:#64748b; font-size:0.75rem; font-weight:800;">Expenses Disbursed</div><div class="stat-value" id="cash_total_expenses_val" style="color:#f59e0b;">৳ 0</div></div>
+                    </div>
+
+                    <div class="chart-card" style="margin-bottom: 25px; padding: 20px;">
+                        <h3 style="font-size: 1.05rem; font-weight: 800; margin-bottom: 15px;"><i class="fas fa-plus-circle"></i> New Deposit Entry</h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: end;">
+                            <div class="form-group"><label>Date</label><input type="date" id="dep_date" class="form-control"></div>
+                            <div class="form-group"><label>Deposit To</label><select id="dep_type" class="form-control" onchange="updateDepositDestinations()"><option value="Bank Deposit" selected>Bank Deposit</option><option value="Expense / Other">Operating Expense</option></select></div>
+                            <div class="form-group"><label>Destination Bank/Expense</label><select id="dep_destination" class="form-control"></select></div>
+                            <div class="form-group"><label>Slip / Voucher No</label><input type="text" id="dep_slip_no" class="form-control"></div>
+                            <div class="form-group"><label>Amount (৳)</label><input type="number" id="dep_amount" class="form-control" placeholder="0.00"></div>
+                        </div>
+                        <div style="display: flex; gap: 12px; margin-top: 10px;">
+                            <input type="text" id="dep_note" class="form-control" placeholder="Narration / Note..." style="flex:1;">
+                            <button type="button" class="btn btn-success" onclick="submitDepositEntry()"><i class="fas fa-save"></i> Save Deposit</button>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <div class="chart-header"><h3><i class="fas fa-history"></i> Deposit History</h3></div>
+                        <div class="table-responsive">
+                            <table class="custom-table">
+                                <thead><tr><th>Date</th><th>ID</th><th>Type</th><th>Destination</th><th>Slip No</th><th>Amount</th><th>Note</th><th>Recorded By</th><th>Action</th></tr></thead>
+                                <tbody id="depositsHistoryTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: REPORTS -->
+                <section id="view_reports" class="view-section">
+                    <div class="page-header">
+                        <div>
+                            <h1><i class="fas fa-file-invoice-dollar"></i> Analytical Reports</h1>
+                            <p class="subtitle">Export financial ledgers, stock audits, and aging sheets</p>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-success" onclick="exportTableToExcel()"><i class="fas fa-file-excel"></i> Export Excel</button>
+                            <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print"></i> Print</button>
+                        </div>
+                    </div>
+                    <div class="report-filters">
+                        <div class="form-group"><label>Start Date</label><input type="date" id="rptStartDate" class="form-control"></div>
+                        <div class="form-group"><label>End Date</label><input type="date" id="rptEndDate" class="form-control"></div>
+                        <div class="form-group">
+                            <label>Report Type</label>
+                            <select id="rptTypeSelect" class="form-control">
+                                <option value="collection">Collection Report</option>
+                                <option value="deposit_report">Deposit & Expense Report</option>
+                                <option value="stock">Current Stock Report</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><button class="btn btn-primary" style="width: 100%; height: 42px;" onclick="generateAnalyticalReport()"><i class="fas fa-search"></i> Generate</button></div>
+                    </div>
+                    <div class="report-summary">
+                        <div class="summary-box"><div style="color:#64748b; font-weight:700;">Records</div><div class="stat-value" id="rpt_count">0</div></div>
+                        <div class="summary-box"><div style="color:#64748b; font-weight:700;">Total Amount</div><div class="stat-value" id="rpt_total">৳ 0.00</div></div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="table-responsive">
+                            <table class="data-table" id="reportResultTable">
+                                <thead id="reportHeader"></thead>
+                                <tbody id="reportContent"><tr><td colspan="8" class="text-center">Select filters and generate report.</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: SETTINGS & MASTER DATA -->
+                <section id="view_settings" class="view-section">
+                    <div class="page-header">
+                        <div>
+                            <h1><i class="fas fa-cog"></i> Settings & Master Data</h1>
+                            <p class="subtitle">System parameters and taxonomies stored in Supabase</p>
+                        </div>
+                        <button class="btn btn-secondary" onclick="openSupabaseConfigModal()"><i class="fas fa-database"></i> Supabase Setup</button>
+                    </div>
+
+                    <div class="settings-top-grid">
+                        <div class="chart-card" style="padding: 20px;">
+                            <h3 style="font-size: 1.05rem; margin-bottom: 15px;"><i class="fas fa-sliders-h"></i> General Configuration</h3>
+                            <form id="systemSettingsForm" style="display:flex; flex-direction:column; gap:10px;">
+                                <div class="settings-config-row">
+                                    <div class="form-group"><label>Company Name</label><input type="text" name="COMPANY_NAME" class="form-control" value="shoPPilot"></div>
+                                    <div class="form-group"><label>Currency Symbol</label><input type="text" name="CURRENCY_SYMBOL" class="form-control" value="৳"></div>
+                                </div>
+                                <div class="form-group"><label>Opening Cash Book Balance (৳)</label><input type="number" name="OPENING_CASH_BALANCE" class="form-control" value="25000"></div>
+                                <button type="button" class="btn btn-primary" onclick="saveSystemConfig()"><i class="fas fa-save"></i> Save Config</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="settings-master-grid" style="margin-top:20px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+                        <div class="chart-card" style="padding: 16px;">
+                            <h4><i class="fas fa-tags" style="color:#4361ee;"></i> Categories</h4>
+                            <div style="display:flex; gap:8px; margin: 10px 0;">
+                                <input type="text" id="newCatName" class="form-control" placeholder="New Category..." onkeydown="if(event.key==='Enter'){event.preventDefault();addMasterItem('Categories', 'newCatName');}">
+                                <button type="button" class="btn btn-primary" onclick="addMasterItem('Categories', 'newCatName')">Add</button>
+                            </div>
+                            <div id="categoryListContainer"></div>
+                        </div>
+
+                        <div class="chart-card" style="padding: 16px;">
+                            <h4><i class="fas fa-copyright" style="color:#7209b7;"></i> Brands</h4>
+                            <div style="display:flex; gap:8px; margin: 10px 0;">
+                                <input type="text" id="newBrandName" class="form-control" placeholder="New Brand..." onkeydown="if(event.key==='Enter'){event.preventDefault();addMasterItem('Brands', 'newBrandName');}">
+                                <button type="button" class="btn btn-primary" onclick="addMasterItem('Brands', 'newBrandName')">Add</button>
+                            </div>
+                            <div id="brandListContainer"></div>
+                        </div>
+
+                        <div class="chart-card" style="padding: 16px;">
+                            <h4><i class="fas fa-warehouse" style="color:#10b981;"></i> Warehouses</h4>
+                            <div style="display:flex; gap:8px; margin: 10px 0;">
+                                <input type="text" id="newWhName" class="form-control" placeholder="New Warehouse..." onkeydown="if(event.key==='Enter'){event.preventDefault();addMasterItem('Warehouses', 'newWhName');}">
+                                <button type="button" class="btn btn-primary" onclick="addMasterItem('Warehouses', 'newWhName')">Add</button>
+                            </div>
+                            <div id="warehouseListContainer"></div>
+                        </div>
+
+                        <div class="chart-card" style="padding: 16px;">
+                            <h4><i class="fas fa-university" style="color:#0284c7;"></i> Bank Accounts</h4>
+                            <div style="display:flex; gap:8px; margin: 10px 0;">
+                                <input type="text" id="newBankName" class="form-control" placeholder="New Bank..." onkeydown="if(event.key==='Enter'){event.preventDefault();addMasterItem('Settings_Banks', 'newBankName');}">
+                                <button type="button" class="btn btn-primary" onclick="addMasterItem('Settings_Banks', 'newBankName')">Add</button>
+                            </div>
+                            <div id="bankListContainer"></div>
+                        </div>
+
+                        <div class="chart-card" style="padding: 16px;">
+                            <h4><i class="fas fa-receipt" style="color:#f59e0b;"></i> Operating Expense Categories</h4>
+                            <div style="display:flex; gap:8px; margin: 10px 0;">
+                                <input type="text" id="newExpCatName" class="form-control" placeholder="New Expense Category..." onkeydown="if(event.key==='Enter'){event.preventDefault();addMasterItem('Settings_Expense_Categories', 'newExpCatName');}">
+                                <button type="button" class="btn btn-primary" onclick="addMasterItem('Settings_Expense_Categories', 'newExpCatName')">Add</button>
+                            </div>
+                            <div id="expenseCategoryListContainer"></div>
+                        </div>
+
+                        <div class="chart-card" style="padding: 16px;">
+                            <h4><i class="fas fa-user-tag" style="color:#ec4899;"></i> Customer Types</h4>
+                            <div style="display:flex; gap:8px; margin: 10px 0;">
+                                <input type="text" id="newCustTypeName" class="form-control" placeholder="New Customer Type (e.g. Retail)..." onkeydown="if(event.key==='Enter'){event.preventDefault();addMasterItem('Settings_Customer_Types', 'newCustTypeName');}">
+                                <button type="button" class="btn btn-primary" onclick="addMasterItem('Settings_Customer_Types', 'newCustTypeName')">Add</button>
+                            </div>
+                            <div id="customerTypeListContainer"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- VIEW: USERS -->
+                <section id="view_users" class="view-section">
+                    <div class="page-header">
+                        <div>
+                            <h1><i class="fas fa-user-shield"></i> User Role Access</h1>
+                            <p class="subtitle">System credentials and permission governance</p>
+                        </div>
+                        <button class="btn btn-primary" onclick="openAddUserModal()"><i class="fas fa-plus"></i> Add New User</button>
+                    </div>
+                    <div class="chart-card">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead><tr><th>User ID</th><th>Name</th><th>Email</th><th>Password</th><th>Role</th><th>Change Role</th><th>Status</th><th>Actions</th></tr></thead>
+                                <tbody id="userTableBody"><tr><td colspan="8" class="text-center">Loading users...</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- ======================================================================= -->
+    <!-- 4. MODALS & POPUPS                                                      -->
+    <!-- ======================================================================= -->
+    
+    <!-- Quick Sale Modal (Mobile App Interface) -->
+    <div id="quickSaleModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.65); z-index:1000; align-items:center; justify-content:center; backdrop-filter:blur(3px);">
+        <div class="modal-content quick-sale-mobile-container">
+            <div id="qs_form_container" style="display: flex; flex-direction: column; height: 100%; width: 100%;">
+                <!-- Blue Mobile App Header -->
+                <div class="qs-mobile-header">
+                    <button type="button" class="qs-hdr-btn" onclick="closeModal('quickSaleModal')" title="Back">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <div class="qs-hdr-title">
+                        <span style="color: #fbbf24;">⚡</span> Quick Sale
+                    </div>
+                    <button type="button" class="qs-hdr-btn" onclick="closeModal('quickSaleModal')" title="Close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <!-- Scrollable Body with Grey Background -->
+                <div class="qs-mobile-body">
+                    <!-- Row 1: Warehouse & Memo No -->
+                    <div class="qs-grid-2" style="grid-template-columns: 1.15fr 1fr; margin-bottom: 12px;">
+                        <div>
+                            <label class="qs-field-label">WAREHOUSE</label>
+                            <select id="qs_warehouse" class="qs-wh-pill-select" onchange="onQuickSaleWarehouseChange(this.value)">
+                                <option value="W001" selected>MouloviBazar</option>
+                                <option value="W002">Begumganj 2</option>
+                                <option value="W003">Begumganj 3</option>
+                                <option value="W004">Armanitola</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="qs-field-label">MEMO NO</label>
+                            <input type="text" id="qs_memo_no" class="qs-input-field" value="23456" placeholder="Memo...">
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Product Search with Search Icon & Dropdown -->
+                    <div style="position: relative; margin-bottom: 12px;">
+                        <label class="qs-field-label">PRODUCT SEARCH</label>
+                        <div class="qs-search-bar">
+                            <i class="fas fa-search qs-search-icon"></i>
+                            <input type="text" id="qs_prod_search" placeholder="Search product / batch..." autocomplete="off" oninput="filterQuickProducts(this.value)" onfocus="filterQuickProducts(this.value)">
+                        </div>
+                        <div id="qs_search_results" class="qs-dropdown-list" style="display:none;"></div>
+                    </div>
+
+                    <!-- Row 3: Sale Date & Customer -->
+                    <div class="qs-grid-2" style="grid-template-columns: 1fr 1.6fr; margin-bottom: 14px;">
+                        <div>
+                            <label class="qs-field-label">SALE DATE</label>
+                            <input type="date" id="qs_sale_date" class="qs-input-field">
+                        </div>
+                        <div>
+                            <label class="qs-field-label">CUSTOMER</label>
+                            <select id="qs_customer" class="qs-input-field qs-select-field">
+                                <option value="Nasim Store-HBL" selected>Nasim Store-HBL</option>
+                                <option value="Hamidul Store-MEL">Hamidul Store-MEL</option>
+                                <option value="Masud Store-HBL">Masud Store-HBL</option>
+                                <option value="Hamidul Store-HBL">Hamidul Store-HBL</option>
+                                <option value="S.B.Traders-MEL">S.B.Traders-MEL</option>
+                                <option value="WALK-IN">Walk-in Customer</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Cart Items Cards -->
+                    <div id="quickCartItems"></div>
+
+                    <!-- Calculations Summary Card -->
+                    <div class="qs-calc-card">
+                        <div class="qs-grid-2" style="grid-template-columns: 1fr 1fr; margin-bottom: 10px;">
+                            <div>
+                                <label class="qs-field-label">DISCOUNT (৳)</label>
+                                <input type="number" id="qs_discount" class="qs-input-field" value="0" min="0" oninput="calculateQuickTotal()">
+                            </div>
+                            <div>
+                                <label class="qs-field-label">TAX/VAT (৳)</label>
+                                <input type="number" id="qs_tax" class="qs-input-field" value="0" min="0" oninput="calculateQuickTotal()">
+                            </div>
+                        </div>
+                        <div class="qs-grid-2" style="grid-template-columns: 1fr 1fr;">
+                            <div>
+                                <label class="qs-field-label">PAID AMOUNT</label>
+                                <input type="number" id="qs_paid" class="qs-input-field" placeholder="0.00" min="0" oninput="calculateQuickTotal()">
+                            </div>
+                            <div>
+                                <label class="qs-field-label">DUE AMOUNT</label>
+                                <input type="text" id="qs_due" class="qs-input-field qs-due-highlight" readonly value="23032">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer with Total Payable & Actions -->
+                <div class="qs-mobile-footer">
+                    <div class="qs-total-payable-bar">
+                        <span class="qs-total-label">TOTAL PAYABLE</span>
+                        <span class="qs-total-val">৳ <span id="qs_total_text">23,032</span></span>
+                    </div>
+                    <div class="qs-actions-row">
+                        <button type="button" class="qs-btn-clear" onclick="clearQuickCart()">Clear</button>
+                        <button type="button" class="qs-btn-submit" id="btnQuickSaleSubmit" onclick="submitQuickSale()">SUBMIT</button>
+                        <button type="button" class="qs-btn-full" onclick="qsFullPaid()">Full</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Success Screen -->
+            <div id="qs_success_screen" style="display:none; height:100%; flex-direction:column; align-items:center; justify-content:center; padding:30px 20px; text-align:center; background:#ffffff;">
+                <div style="width:70px; height:70px; border-radius:50%; background:#dcfce7; color:#16a34a; display:flex; align-items:center; justify-content:center; font-size:2.2rem; margin-bottom:16px;">
+                    <i class="fas fa-check"></i>
+                </div>
+                <h3 style="margin: 0 0 6px 0; font-size: 1.35rem; font-weight: 800; color: #0f172a;">Sale Successful!</h3>
+                <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 20px;">Invoice: <strong id="qs_success_invoice_no" style="color:#2563eb;">-</strong></p>
+                <div style="display:flex; gap:10px; width:100%; max-width:280px;">
+                    <button type="button" class="btn btn-secondary" onclick="resetQuickSaleUI()" style="flex:1;">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="resetQuickSaleUI(); openQuickSale();" style="flex:1;">New Sale</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Purchase Modal (Multi-Product Purchase Inbound) -->
+    <div id="quickPurchaseModule" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.65); z-index:1000; align-items:center; justify-content:center; backdrop-filter:blur(3px);">
+        <div class="modal-content" style="max-width: 930px; width: 95%; max-height: 92vh; background: #ffffff; border-radius: 12px; overflow: hidden; padding: 0; border: none; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35); display: flex; flex-direction: column;">
+            <!-- Modal Header -->
+            <div style="background: #3b82f6; color: white; padding: 13px 20px; display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-truck-loading" style="font-size: 1.15rem;"></i>
+                    <h3 style="margin: 0; font-size: 1.05rem; font-weight: 700; color: white;">Multi-Product Purchase Inbound</h3>
+                </div>
+                <button type="button" onclick="closeQuickPurchase()" style="background: none; border: none; color: white; font-size: 1.5rem; line-height: 1; cursor: pointer; padding: 0 4px;">&times;</button>
+            </div>
+
+            <!-- Modal Body Scrollable -->
+            <div style="overflow-y: auto; flex: 1; padding: 0 0 10px 0;">
+                <!-- Top Row: Warehouse, Supplier, Purchase Date -->
+                <div style="padding: 16px 20px 10px 20px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+                    <div>
+                        <label style="display: block; font-size: 0.72rem; font-weight: 800; color: #475569; letter-spacing: 0.5px; margin-bottom: 6px; text-transform: uppercase;">DESTINATION WAREHOUSE</label>
+                        <select id="qp_warehouse_select" class="form-control" style="background: #eff6ff; border: 1.5px solid #bfdbfe; color: #2563eb; font-weight: 700; height: 42px; border-radius: 8px;"></select>
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.72rem; font-weight: 800; color: #475569; letter-spacing: 0.5px; margin-bottom: 6px; text-transform: uppercase;">SUPPLIER</label>
+                        <select id="qp_supplier_select" class="form-control" style="height: 42px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 500;"></select>
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.72rem; font-weight: 800; color: #475569; letter-spacing: 0.5px; margin-bottom: 6px; text-transform: uppercase;">PURCHASE DATE</label>
+                        <input type="date" id="qp_purchase_date" class="form-control" style="height: 42px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                    </div>
+                </div>
+
+                <!-- Inbound Product Entry Section -->
+                <div style="margin: 6px 20px 14px 20px; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; background: #ffffff;">
+                    <div style="font-size: 0.78rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 6px; margin-bottom: 12px; letter-spacing: 0.5px; text-transform: uppercase;">
+                        <i class="fas fa-plus-circle" style="color: #10b981; font-size: 1rem;"></i>
+                        <span>INBOUND PRODUCT ENTRY</span>
+                    </div>
+
+                    <!-- Row 1: Product Search, Batch No, Expiry Date -->
+                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                        <div style="position: relative;">
+                            <label style="display: block; font-size: 0.74rem; font-weight: 600; color: #475569; margin-bottom: 4px;">Product Search</label>
+                            <input type="text" id="qp_search_input" class="form-control" placeholder="Type product name/code..." autocomplete="off" oninput="qp_filterProducts(this.value)" style="height: 38px; border-radius: 6px;">
+                            <input type="hidden" id="qp_selected_prod_id">
+                            <input type="hidden" id="qp_selected_upc" value="1">
+                            <div id="qp_results" class="qp-dropdown" style="display:none; position:absolute; top:100%; left:0; right:0; z-index:1050; background:white; border:1px solid #cbd5e1; border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.12); max-height:220px; overflow-y:auto; margin-top:3px;"></div>
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.74rem; font-weight: 600; color: #475569; margin-bottom: 4px;">Batch No</label>
+                            <input type="text" id="qp_batch_input" class="form-control" placeholder="Auto if blank" style="height: 38px; border-radius: 6px;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.74rem; font-weight: 600; color: #475569; margin-bottom: 4px;">Expiry Date <span style="color: #ef4444;">*</span></label>
+                            <input type="date" id="qp_expiry_input" class="form-control" style="height: 38px; border-radius: 6px;">
+                        </div>
+                    </div>
+
+                    <!-- Row 2: CTN Qty, Loose PCS, Paid PCS, Free PCS, CTN Cost, Unit Cost, Sale, MRP, Add Button -->
+                    <div style="display: grid; grid-template-columns: 0.85fr 0.85fr 0.85fr 1.05fr 1fr 1fr 0.9fr 0.9fr auto; gap: 8px; align-items: flex-end;">
+                        <div>
+                            <label style="display: block; font-size: 0.72rem; font-weight: 700; color: #1e40af; margin-bottom: 4px;">CTN Qty</label>
+                            <input type="number" id="qp_ctn_qty" class="form-control" value="0" min="0" oninput="qp_onCtnChange()" style="height: 38px; font-weight: 700; text-align: center;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.72rem; font-weight: 700; color: #475569; margin-bottom: 4px;">Loose PCS</label>
+                            <input type="number" id="qp_loose_pcs" class="form-control" value="0" min="0" oninput="qp_onLooseChange()" style="height: 38px; font-weight: 700; text-align: center;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.72rem; font-weight: 700; color: #2563eb; margin-bottom: 4px;">Paid PCS</label>
+                            <input type="number" id="qp_paid_pcs" class="form-control" value="0" min="0" oninput="qp_onPaidPcsChange()" style="height: 38px; font-weight: 800; color: #2563eb; border: 1.5px solid #93c5fd; background: #eff6ff; text-align: center;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.72rem; font-weight: 700; color: #16a34a; margin-bottom: 4px;">🎁 Free PCS</label>
+                            <input type="number" id="qp_free_pcs" class="form-control" value="0" min="0" oninput="qp_onFreePcsChange()" style="height: 38px; font-weight: 800; color: #16a34a; border: 1.5px solid #86efac; background: #f0fdf4; text-align: center;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.72rem; font-weight: 600; color: #475569; margin-bottom: 4px;">CTN Cost (৳)</label>
+                            <input type="number" id="qp_ctn_cost" class="form-control" value="0.00" step="0.01" min="0" oninput="qp_onCtnCostChange()" style="height: 38px; text-align: right;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.72rem; font-weight: 600; color: #475569; margin-bottom: 4px;">Unit Cost (৳)</label>
+                            <input type="number" id="qp_unit_cost" class="form-control" value="0.00" step="0.01" min="0" oninput="qp_onUnitCostChange()" style="height: 38px; text-align: right;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.72rem; font-weight: 600; color: #475569; margin-bottom: 4px;">Sale (৳)</label>
+                            <input type="number" id="qp_sale_price" class="form-control" value="0.00" step="0.01" min="0" style="height: 38px; text-align: right;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.72rem; font-weight: 600; color: #475569; margin-bottom: 4px;">MRP (৳)</label>
+                            <input type="number" id="qp_mrp_price" class="form-control" value="0.00" step="0.01" min="0" style="height: 38px; text-align: right;">
+                        </div>
+                        <div>
+                            <button type="button" class="btn" id="qp_btn_add" onclick="qp_addItem()" style="height: 38px; background: #10b981; color: white; font-weight: 700; border-radius: 6px; padding: 0 16px; border: none; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 4px;">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Staging Items Table -->
+                <div style="padding: 0 20px; max-height: 250px; overflow-y: auto;">
+                    <table class="custom-table" style="margin: 0; width: 100%;">
+                        <thead>
+                            <tr style="background: #e0f2fe; color: #0369a1;">
+                                <th style="font-size: 0.75rem; text-transform: uppercase; font-weight: 800;">PRODUCT</th>
+                                <th style="font-size: 0.75rem; text-transform: uppercase; font-weight: 800;">BATCH</th>
+                                <th style="font-size: 0.75rem; text-transform: uppercase; font-weight: 800;">EXPIRY</th>
+                                <th style="font-size: 0.75rem; text-transform: uppercase; font-weight: 800; text-align: center;">PAID QTY</th>
+                                <th style="font-size: 0.75rem; text-transform: uppercase; font-weight: 800; text-align: center;">🎁 FREE</th>
+                                <th style="font-size: 0.75rem; text-transform: uppercase; font-weight: 800; text-align: center;">INBOUND STK</th>
+                                <th style="font-size: 0.75rem; text-transform: uppercase; font-weight: 800; text-align: right;">COST</th>
+                                <th style="font-size: 0.75rem; text-transform: uppercase; font-weight: 800; text-align: right;">TOTAL</th>
+                                <th style="font-size: 0.75rem; text-transform: uppercase; font-weight: 800; text-align: center; width: 45px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="qp_items_table_body">
+                            <tr>
+                                <td colspan="9" class="text-center" style="padding: 28px; color: #94a3b8; font-size: 0.88rem;">
+                                    No products added to this purchase yet.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div style="padding: 14px 20px; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; background: white; border-radius: 0 0 12px 12px;">
+                <div style="font-size: 1.15rem; font-weight: 800; color: #1e293b;">
+                    Grand Total: <span style="color: #2563eb; font-weight: 900;">৳ <span id="qp_grand_total">0</span></span>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" class="btn" onclick="closeQuickPurchase()" style="background: #475569; color: white; font-weight: 600; padding: 9px 20px; border-radius: 6px; border: none; cursor: pointer;">Cancel</button>
+                    <button type="button" class="btn" id="qp_btn_submit" onclick="qp_submit()" style="background: #2563eb; color: white; font-weight: 700; padding: 9px 20px; border-radius: 6px; border: none; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                        <i class="fas fa-save"></i> Save & Receive Stock
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Modal -->
+    <div id="productModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h3 id="productModalTitle">Add Product</h3><button class="btn-close" onclick="closeModal('productModal')">&times;</button></div>
+            <div class="modal-body">
+                <form id="productForm" onsubmit="event.preventDefault(); handleProductSubmit();">
+                    <input type="hidden" id="edit_product_id">
+                    <div class="form-group"><label>Product Code</label><input type="text" id="p_id" class="form-control" placeholder="e.g. P0017" required></div>
+                    <div class="form-group"><label>Product Name</label><input type="text" id="p_name" class="form-control" placeholder="e.g. Sesa Hair Oil 100ml" required></div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                        <div class="form-group"><label>Category</label><select id="p_category" class="form-control"><option value="">Select Category</option></select></div>
+                        <div class="form-group"><label>Brand</label><select id="p_brand" class="form-control"><option value="">Select Brand</option></select></div>
+                    </div>
+                    <div class="form-group"><label>Pack Size (UPC)</label><input type="text" id="p_upc" class="form-control" value="1"></div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                        <div class="form-group"><label>Initial Stock</label><input type="number" id="p_stock" class="form-control" value="0"></div>
+                        <div class="form-group"><label>Warehouse</label><select id="p_warehouse" class="form-control"></select></div>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+                        <div class="form-group"><label>Cost Price</label><input type="number" id="p_unit_price" class="form-control" value="0"></div>
+                        <div class="form-group"><label>Sale Price</label><input type="number" id="p_sale_price" class="form-control" value="0"></div>
+                        <div class="form-group"><label>MRP Price</label><input type="number" id="p_mrp_price" class="form-control" value="0"></div>
+                    </div>
+                    <div class="form-group"><label>Expiry Date</label><input type="date" id="p_expiry" class="form-control"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('productModal')">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnProductSubmit" onclick="handleProductSubmit()"><i class="fas fa-save"></i> Save Product</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock Transfer Modal -->
+    <div id="transferModal" class="modal">
+        <div class="modal-content" style="max-width: 480px;">
+            <div class="modal-header" style="background:#10b981; color:white;"><h3 style="margin:0;"><i class="fas fa-exchange-alt"></i> Stock Transfer</h3><button class="btn-close" onclick="closeModal('transferModal')" style="color:white;">&times;</button></div>
+            <div class="modal-body">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div class="form-group"><label>Source Warehouse</label><select id="trf_source" class="form-control" onchange="onTrfSourceChange()"></select></div>
+                    <div class="form-group"><label>Destination Warehouse</label><select id="trf_dest" class="form-control"></select></div>
+                </div>
+                <div class="form-group" style="position:relative;">
+                    <label>Product</label>
+                    <input type="text" id="trf_search_input" class="form-control" placeholder="Select Source first..." disabled oninput="trf_filterProducts(this.value)">
+                    <div id="trf_dropdown" class="trf-search-dropdown" style="display:none;"></div>
+                    <input type="hidden" id="trf_selected_idx">
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div class="form-group"><label>Available</label><input type="number" id="trf_available" class="form-control" readonly></div>
+                    <div class="form-group"><label>Transfer Qty</label><input type="number" id="trf_qty" class="form-control" min="1"></div>
+                </div>
+                <div class="form-group"><label>Note</label><input type="text" id="trf_note" class="form-control" placeholder="Reason..."></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('transferModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="executeTransfer()">Transfer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Modal (Add & Edit) -->
+    <div id="customerModal" class="modal">
+        <div class="modal-content" style="max-width: 480px; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
+            <div class="modal-header" style="background: #4361ee; color: white; padding: 16px 22px;">
+                <h3 id="customerModalTitle" style="margin:0; font-size: 1.15rem; font-weight: 700; color: white; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-user-plus"></i> Add New Customer
+                </h3>
+                <button class="btn-close" onclick="closeModal('customerModal')" style="color: white; opacity: 1; font-size: 1.25rem;">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 22px 24px;">
+                <form id="customerForm" onsubmit="event.preventDefault(); saveCustomer();">
+                    <input type="hidden" id="c_id">
+                    <div class="form-group" style="margin-bottom: 14px;">
+                        <label style="font-size: 0.72rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; display: block;">Customer Name <span style="color:#ef4444;">*</span></label>
+                        <input type="text" id="c_name" class="form-control" placeholder="e.g. Masud Store-HBL" required style="border-radius: 10px; border: 1.5px solid #cbd5e1; padding: 10px 14px;">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+                        <div class="form-group" style="margin: 0;">
+                            <label style="font-size: 0.72rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; display: block;">Customer Type <span style="color:#ef4444;">*</span></label>
+                            <select id="c_type" class="form-control" style="font-weight: 600; border-radius: 10px; border: 1.5px solid #cbd5e1; padding: 10px 14px;">
+                                <option value="Retail" selected>Retail</option>
+                                <option value="Wholesale">Wholesale</option>
+                                <option value="Corporate">Corporate</option>
+                                <option value="Distributor">Distributor</option>
+                                <option value="Dealer">Dealer</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label style="font-size: 0.72rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; display: block;">Phone</label>
+                            <input type="text" id="c_phone" class="form-control" placeholder="017xxxxxxxx" style="border-radius: 10px; border: 1.5px solid #cbd5e1; padding: 10px 14px;">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 14px;">
+                        <label style="font-size: 0.72rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; display: block;">Address</label>
+                        <textarea id="c_address" class="form-control" rows="2" placeholder="Market, City, Area" style="border-radius: 10px; border: 1.5px solid #cbd5e1; padding: 10px 14px; resize: none;"></textarea>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 6px;">
+                        <div class="form-group" style="margin: 0;">
+                            <label id="c_due_label" style="font-size: 0.72rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; display: block;">Opening Due (৳)</label>
+                            <input type="number" id="c_due" class="form-control" value="0" min="0" step="any" style="border-radius: 10px; border: 1.5px solid #cbd5e1; padding: 10px 14px;">
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label style="font-size: 0.72rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; display: block;">Status</label>
+                            <select id="c_status" class="form-control" style="font-weight: 600; border-radius: 10px; border: 1.5px solid #cbd5e1; padding: 10px 14px;">
+                                <option value="Active" selected>Active</option>
+                                <option value="Inactive">Inactive</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer" style="padding: 14px 22px; border-top: 1px solid #f1f5f9; display: flex; justify-content: flex-end; gap: 10px; background: #ffffff;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('customerModal')" style="background: #526173; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600;">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnSaveCustomer" onclick="saveCustomer()" style="background: #3b66f5; color: white; border: none; padding: 10px 22px; border-radius: 8px; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                    <i class="fas fa-save"></i> <span id="btnSaveCustomerText">Save Customer</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Supplier Modal -->
+    <div id="supplierModal" class="modal">
+        <div class="modal-content" style="max-width: 450px;">
+            <div class="modal-header"><h3>Add Supplier</h3><button class="btn-close" onclick="closeModal('supplierModal')">&times;</button></div>
+            <div class="modal-body">
+                <form id="supplierForm">
+                    <div class="form-group"><label>Supplier Name</label><input type="text" id="s_name" class="form-control" required></div>
+                    <div class="form-group"><label>Contact Person</label><input type="text" id="s_contact" class="form-control"></div>
+                    <div class="form-group"><label>Phone</label><input type="text" id="s_phone" class="form-control" required></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('supplierModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveSupplier()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Receive Payment Modal (Pixel-Perfect Matching Spec) -->
+    <div id="paymentModal" class="modal">
+        <div class="modal-content" style="max-width: 520px; border-radius: 16px; overflow: hidden; background: #ffffff; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+            <div class="modal-header" style="background: #4361ee; color: #ffffff; padding: 14px 22px; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 10px;">
+                    <i class="fas fa-money-bill-wave"></i> Receive Payment
+                </h3>
+                <button type="button" class="btn-close" onclick="closeModal('paymentModal')" style="color: #ffffff; font-size: 1.35rem; line-height: 1; background: transparent; border: none; cursor: pointer; opacity: 0.9;">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 22px 24px;">
+                <input type="hidden" id="pay_cust_id">
+                
+                <!-- Customer & Due Balance Banner -->
+                <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                    <div>
+                        <div style="font-size: 0.7rem; font-weight: 800; color: #64748b; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 4px;">CUSTOMER</div>
+                        <div id="pay_cust_name" style="font-size: 1.15rem; font-weight: 800; color: #0f172a;">Hamidul Store-MEL</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 0.7rem; font-weight: 800; color: #64748b; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 4px;">DUE BALANCE</div>
+                        <div id="pay_cust_due" style="font-size: 1.35rem; font-weight: 800; color: #ef4444; letter-spacing: -0.02em;">৳ 0.00</div>
+                    </div>
+                </div>
+
+                <!-- Row 1: Payment Date & Memo No -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                    <div class="form-group" style="margin: 0;">
+                        <label style="font-size: 0.72rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; display: block;">PAYMENT DATE</label>
+                        <input type="date" id="pay_date" class="form-control" style="border-radius: 10px; padding: 10px 14px; border: 1.5px solid #cbd5e1; font-weight: 500;">
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label style="font-size: 0.72rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; display: block;">MEMO NO</label>
+                        <input type="text" id="pay_memo_no" class="form-control" placeholder="e.g. 1024" style="border-radius: 10px; padding: 10px 14px; border: 1.5px solid #cbd5e1;">
+                    </div>
+                </div>
+
+                <!-- Row 2: Specific Invoice -->
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label style="font-size: 0.72rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; display: block;">SPECIFIC INVOICE</label>
+                    <select id="pay_invoice" class="form-control" onchange="onPaymentInvoiceSelect(this.value)" style="border-radius: 10px; padding: 10px 14px; border: 1.5px solid #cbd5e1; font-weight: 500; width: 100%;">
+                        <option value="">-- Bulk Payment / Advance --</option>
+                    </select>
+                </div>
+
+                <!-- Row 3: Category & Payment Mode -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                    <div class="form-group" style="margin: 0;">
+                        <label style="font-size: 0.72rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; display: block;">CATEGORY</label>
+                        <select id="pay_category" class="form-control" style="border-radius: 10px; padding: 10px 14px; border: 1.5px solid #cbd5e1; font-weight: 500; width: 100%;">
+                            <option value="All / General">All / General</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label style="font-size: 0.72rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; display: block;">PAYMENT MODE</label>
+                        <select id="pay_mode" class="form-control" onchange="onPaymentModeSelect(this.value)" style="border-radius: 10px; padding: 10px 14px; border: 1.5px solid #cbd5e1; font-weight: 500; width: 100%;">
+                            <option value="Cash" selected>Cash</option>
+                            <option value="Bank">Bank</option>
+                            <option value="Bkash">Bkash</option>
+                            <option value="Nagad">Nagad</option>
+                            <option value="Cheque">Cheque</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Row 4: Bank Name & Amount -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                    <div class="form-group" style="margin: 0;">
+                        <label style="font-size: 0.72rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; display: block;">BANK NAME</label>
+                        <select id="pay_bank" class="form-control" style="border-radius: 10px; padding: 10px 14px; border: 1.5px solid #cbd5e1; font-weight: 500; width: 100%;">
+                            <option value="">-- Select Bank (Optional) --</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label style="font-size: 0.72rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; display: block;">AMOUNT (৳)</label>
+                        <input type="number" step="any" id="pay_amount" class="form-control" placeholder="0.00" value="0.00" style="border-radius: 10px; padding: 10px 14px; border: 1.5px solid #cbd5e1; font-weight: 700; width: 100%;" required>
+                    </div>
+                </div>
+
+                <!-- Row 5: Narration / Note -->
+                <div class="form-group" style="margin-bottom: 6px;">
+                    <label style="font-size: 0.72rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; display: block;">NARRATION / NOTE</label>
+                    <textarea id="pay_note" class="form-control" rows="2" placeholder="Optional payment remarks..." style="border-radius: 10px; padding: 10px 14px; border: 1.5px solid #cbd5e1; resize: none; width: 100%;"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 16px 24px; border-top: 1px solid #f1f5f9; display: flex; justify-content: flex-end; gap: 12px; background: #ffffff;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('paymentModal')" style="background: #526173; color: white; border: none; padding: 10px 22px; border-radius: 8px; font-weight: 600; cursor: pointer;">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnProcessPayment" onclick="processPayment()" style="background: #3b66f5; color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(59, 102, 245, 0.3);">
+                    <i class="fas fa-check"></i> Save Payment
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Modal -->
+    <div id="addUserModal" class="modal">
+        <div class="modal-content" style="max-width: 420px;">
+            <div class="modal-header"><h3>Add User</h3><button class="btn-close" onclick="closeModal('addUserModal')">&times;</button></div>
+            <div class="modal-body">
+                <form id="addUserForm">
+                    <div class="form-group"><label>Name</label><input type="text" id="new_name" class="form-control" required></div>
+                    <div class="form-group"><label>Email</label><input type="email" id="new_email" class="form-control" required></div>
+                    <div class="form-group"><label>Password</label><input type="password" id="new_password" class="form-control" required></div>
+                    <div class="form-group"><label>Role</label><select id="new_role" class="form-control"><option value="Admin">Admin</option><option value="Manager">Manager</option><option value="Sales">Sales</option><option value="Viewer">Viewer</option></select></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('addUserModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="submitNewUser()">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Universal Lookup Modal -->
+    <div id="docLookupModal" class="modal">
+        <div class="modal-content" style="max-width: 650px;">
+            <div class="modal-header" style="background:#1e293b; color:white;">
+                <h3 style="margin:0;"><i class="fas fa-search" style="color:#4cc9f0;"></i> Universal Document Lookup</h3>
+                <button class="btn-close" onclick="closeModal('docLookupModal')" style="color:white;">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="display:flex; gap:10px; margin-bottom:12px;">
+                    <input type="text" id="docLookupInput" class="form-control" placeholder="Search Invoice (INV-...), Memo, Purchase, or Expense...">
+                    <button class="btn btn-primary" onclick="executeUniversalLookup()">Search</button>
+                </div>
+                <div id="docLookupEmptyArea" style="text-align:center; padding:30px; color:#94a3b8;">Enter document ID to search</div>
+                <div id="docLookupResultArea" style="display:none;"></div>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('docLookupModal')">Close</button></div>
+        </div>
+    </div>
+
+    <!-- Edit Master Item Modal (Categories, Brands, Warehouses, Bank Accounts) -->
+    <div id="editMasterModal" class="modal">
+        <div class="modal-content" style="max-width: 440px;">
+            <div class="modal-header">
+                <h3 id="editMasterModalTitle"><i class="fas fa-edit"></i> Edit Item</h3>
+                <button type="button" class="btn-close" onclick="closeModal('editMasterModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editMasterForm" onsubmit="event.preventDefault(); saveMasterItemEdit();">
+                    <input type="hidden" id="editMasterSheet">
+                    <input type="hidden" id="editMasterId">
+                    <input type="hidden" id="editMasterIdKey">
+                    <input type="hidden" id="editMasterNameKey">
+                    <div class="form-group" style="margin-bottom: 14px;">
+                        <label id="editMasterIdLabel" style="font-size:0.8rem; font-weight:600; color:#64748b; margin-bottom:5px; text-transform:uppercase; letter-spacing:0.5px;">Item ID</label>
+                        <input type="text" id="editMasterIdDisplay" class="form-control" readonly style="background:#f1f5f9; color:#475569; font-weight:600; cursor:not-allowed;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 14px;">
+                        <label id="editMasterNameLabel" style="font-weight:600; margin-bottom:6px;">Name</label>
+                        <input type="text" id="editMasterInput" class="form-control" placeholder="Enter name..." required autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight:600; margin-bottom:6px;">Status</label>
+                        <select id="editMasterStatus" class="form-control">
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('editMasterModal')">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnSaveMasterEdit" onclick="saveMasterItemEdit()" style="display:flex; align-items:center; gap:6px;">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Modal -->
+    <div id="generalAlertModal" class="modal">
+        <div class="modal-content" style="max-width: 360px; text-align: center; padding: 25px;">
+            <i class="fas fa-info-circle fa-3x" style="color: var(--primary); margin-bottom: 12px;"></i>
+            <h3 id="generalAlertTitle">Notice</h3>
+            <p id="generalAlertMsg" style="color: #64748b; margin: 10px 0 20px;"></p>
+            <button class="btn btn-primary" onclick="closeModal('generalAlertModal')" style="width:100%;">OK</button>
+        </div>
+    </div>
+
+    <!-- Logout Modal -->
+    <div id="logoutConfirmModal" class="modal">
+        <div class="modal-content" style="max-width: 340px; text-align: center; padding: 25px;">
+            <i class="fas fa-sign-out-alt fa-3x" style="color: #ef4444; margin-bottom: 12px;"></i>
+            <h3>Logout</h3>
+            <p style="color: #64748b; margin: 10px 0 20px;">Are you sure you want to end your session?</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button class="btn btn-danger" onclick="executeLogout()">Logout</button>
+                <button class="btn btn-secondary" onclick="closeModal('logoutConfirmModal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts Module Bootstrap -->
+    <script type="module" src="/src/app.js"></script>
+    <script src="/src/shoppilot.js"></script>
+</body>
+</html>

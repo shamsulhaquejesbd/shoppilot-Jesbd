@@ -1,0 +1,6 @@
+{
+  "name": "shoPPilot IMS - Supabase Inventory System",
+  "description": "shoPPilot Inventory & Retail Management System migrated to Supabase PostgreSQL.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
