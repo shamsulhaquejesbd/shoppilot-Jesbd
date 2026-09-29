@@ -27,6 +27,30 @@ window.checkAppAuthState = function() {
     if (sidebar) sidebar.style.display = 'none';
     if (mainContent) mainContent.style.display = 'none';
     if (mobileBtn) mobileBtn.style.display = 'none';
+
+    // Ensure login inputs are completely blank and masked
+    const uInp = document.getElementById('authUserId');
+    if (uInp) uInp.value = '';
+    const pInp = document.getElementById('authPassword');
+    if (pInp) {
+      pInp.value = '';
+      pInp.type = 'password';
+    }
+    const eyeIcon = document.getElementById('toggleAuthEyeIcon');
+    if (eyeIcon) {
+      eyeIcon.className = 'far fa-eye';
+    }
+
+    // Guard against aggressive browser autofill
+    setTimeout(() => {
+      const u = document.getElementById('authUserId');
+      const p = document.getElementById('authPassword');
+      if (u && (!BackendService.getCurrentUser() || !BackendService.getCurrentUser().User_ID)) u.value = '';
+      if (p && (!BackendService.getCurrentUser() || !BackendService.getCurrentUser().User_ID)) {
+        p.value = '';
+        p.type = 'password';
+      }
+    }, 150);
   } else {
     if (authView) authView.style.display = 'none';
     if (sidebar) sidebar.style.display = 'flex';

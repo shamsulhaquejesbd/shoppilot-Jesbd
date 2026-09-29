@@ -30,6 +30,13 @@
             if (m && m.style) m.style.display = 'flex';
         };
         window.executeLogout = function() {
+            var uInp = document.getElementById('authUserId');
+            if (uInp) uInp.value = '';
+            var pInp = document.getElementById('authPassword');
+            if (pInp) {
+                pInp.value = '';
+                pInp.type = 'password';
+            }
             if (window.BackendService && typeof window.BackendService.logout === 'function') {
                 window.BackendService.logout();
             } else {
@@ -72,22 +79,24 @@
 
                     <div id="loginErrorMsg" style="color: #ef4444; font-size: 0.85rem; margin-bottom: 15px; display: none; background: #fee2e2; padding: 8px; border-radius: 6px;"></div>
 
-                    <div class="form-group" style="text-align: left;">
-                        <label>User ID</label>
-                        <input type="text" id="authUserId" class="form-control" placeholder="e.g. U0001" value="U0001" required>
-                    </div>
-
-                    <div class="form-group" style="text-align: left;">
-                        <label>Password</label>
-                        <div style="position: relative;">
-                            <input type="password" id="authPassword" class="form-control" placeholder="••••••••" value="admin123" required>
-                            <i class="far fa-eye" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #94a3b8;" onclick="toggleAuthPassword()"></i>
+                    <form id="authLoginForm" autocomplete="off" onsubmit="event.preventDefault(); handleLoginSubmit();">
+                        <div class="form-group" style="text-align: left;">
+                            <label>User ID</label>
+                            <input type="text" id="authUserId" class="form-control" placeholder="Enter User ID" autocomplete="off" value="" required>
                         </div>
-                    </div>
 
-                    <button class="btn btn-primary" id="btnSignIn" onclick="handleLoginSubmit()" style="width: 100%; padding: 12px; font-weight: 700; margin-top: 10px;">
-                        Sign In
-                    </button>
+                        <div class="form-group" style="text-align: left;">
+                            <label>Password</label>
+                            <div style="position: relative;">
+                                <input type="password" id="authPassword" class="form-control" placeholder="••••••••" autocomplete="new-password" value="" required>
+                                <i id="toggleAuthEyeIcon" class="far fa-eye" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #94a3b8;" onclick="toggleAuthPassword()"></i>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary" id="btnSignIn" style="width: 100%; padding: 12px; font-weight: 700; margin-top: 10px;">
+                            Sign In
+                        </button>
+                    </form>
 
                     <p style="margin-top: 25px; font-size: 0.75rem; color: #94a3b8; letter-spacing: 0.05em; text-transform: uppercase;">
                         © 2026 SHOPPILOT SYSTEMS LTD.

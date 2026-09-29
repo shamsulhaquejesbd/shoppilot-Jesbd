@@ -287,6 +287,16 @@ window.openLogoutModal = function() {
 };
 
 window.executeLogout = function() {
+    const uInp = document.getElementById('authUserId');
+    if (uInp) uInp.value = '';
+    const pInp = document.getElementById('authPassword');
+    if (pInp) {
+        pInp.value = '';
+        pInp.type = 'password';
+    }
+    const eyeIcon = document.getElementById('toggleAuthEyeIcon');
+    if (eyeIcon) eyeIcon.className = 'far fa-eye';
+
     if (window.BackendService && typeof window.BackendService.logout === 'function') {
         window.BackendService.logout();
     } else {
@@ -297,8 +307,10 @@ window.executeLogout = function() {
 };
 
 window.handleLoginSubmit = function() {
-    const u = document.getElementById('authUserId').value.trim();
-    const p = document.getElementById('authPassword').value.trim();
+    const uInp = document.getElementById('authUserId');
+    const pInp = document.getElementById('authPassword');
+    const u = uInp?.value?.trim() || '';
+    const p = pInp?.value?.trim() || '';
     const btn = document.getElementById('btnSignIn');
     const err = document.getElementById('loginErrorMsg');
 
@@ -310,10 +322,13 @@ window.handleLoginSubmit = function() {
 
     google.script.run
         .withSuccessHandler(isValid => {
-            if (isValid) window.location.reload();
-            else {
+            if (isValid) {
+                if (pInp) pInp.value = '';
+                window.location.reload();
+            } else {
                 btn.disabled = false;
                 btn.innerHTML = 'Sign In';
+                if (pInp) pInp.value = '';
                 err.textContent = "Invalid User ID or Password";
                 err.style.display = 'block';
             }
@@ -321,6 +336,7 @@ window.handleLoginSubmit = function() {
         .withFailureHandler(e => {
             btn.disabled = false;
             btn.innerHTML = 'Sign In';
+            if (pInp) pInp.value = '';
             showAlertModal("System Error", e.message);
         })
         .validateLogin(u, p);
@@ -501,8 +517,21 @@ window.changeProdPage = function(dir) { prodPage += dir; renderProductTable(); }
 
 window.toggleAuthPassword = function() {
     const inp = document.getElementById('authPassword');
+    const icon = document.getElementById('toggleAuthEyeIcon');
     if (!inp) return;
-    inp.type = inp.type === 'password' ? 'text' : 'password';
+    if (inp.type === 'password') {
+        inp.type = 'text';
+        if (icon) {
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        }
+    } else {
+        inp.type = 'password';
+        if (icon) {
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    }
 };
 
 window.openProductModal = function() {
