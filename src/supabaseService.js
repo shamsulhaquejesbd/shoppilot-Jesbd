@@ -2983,6 +2983,167 @@ export const BackendService = {
 
   async syncStockLevels() {
     return { success: true };
+  },
+
+  // Bulk upload rows to table
+  async bulkUploadTableData(tableName, rows, mode = 'append') {
+    const table = TABLE_MAP[tableName] || tableName.toLowerCase();
+    const sb = getSupabase();
+    
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return { success: false, error: 'No data rows provided for upload.' };
+    }
+
+    // Normalize rows
+    const normalizedRows = rows.map(r => {
+      const clean = {};
+      Object.keys(r).forEach(k => {
+        const val = r[k];
+        const trimmedKey = k.trim();
+        clean[trimmedKey] = (typeof val === 'string') ? val.trim() : val;
+        clean[trimmedKey.toLowerCase()] = clean[trimmedKey];
+      });
+      return clean;
+    });
+
+    if (mode === 'replace') {
+      if (demoStore[table]) {
+        demoStore[table] = [];
+      }
+      if (sb) {
+        try {
+          await sb.from(table).delete().neq('id', -9999);
+        } catch (e) {
+          console.warn('Replace error on Supabase:', e);
+        }
+      }
+    }
+
+    let insertedCount = 0;
+    const errors = [];
+
+    if (table === 'products') {
+      for (const row of normalizedRows) {
+        try {
+          await this.saveProduct(row);
+          insertedCount++;
+        } catch (e) {
+          errors.push(e.message);
+        }
+      }
+    } else {
+      const pkMap = {
+        customers: 'customer_id',
+        categories: 'category_id',
+        brands: 'brand_id',
+        suppliers: 'supplier_id',
+        warehouses: 'warehouse_id',
+        transactions_purchase: 'purchase_id',
+        transactions_sales: 'sale_id',
+        inventory_ledger: 'ledger_id',
+        customer_payments: 'payment_id',
+        deposits: 'deposit_id',
+        expenses: 'expense_id',
+        settings_banks: 'bank_id',
+        settings_expense_categories: 'ec_id',
+        settings_customer_types: 'ct_id'
+      };
+      const pk = pkMap[table];
+
+      for (let i = 0; i < normalizedRows.length; i++) {
+        const row = normalizedRows[i];
+        if (pk && (!row[pk] || row[pk] === 'AUTO')) {
+          const prefix = (table === 'customers') ? 'CST' :
+                         (table === 'transactions_purchase') ? 'PU' :
+                         (table === 'transactions_sales') ? 'SA' :
+                         (table === 'inventory_ledger') ? 'L' :
+                         (table === 'customer_payments') ? 'PAY' :
+                         (table === 'deposits') ? 'DP' :
+                         (table === 'expenses') ? 'EXP' :
+                         (table === 'settings_banks') ? 'BK' :
+                         (table === 'settings_expense_categories') ? 'EC' :
+                         (table === 'settings_customer_types') ? 'CT' : 'ID';
+          const existingCount = (demoStore[table] || []).length + i + 1;
+          row[pk] = `${prefix}${String(existingCount).padStart(4, '0')}`;
+        }
+
+        if (!demoStore[table]) demoStore[table] = [];
+
+        if (pk && row[pk] && mode === 'upsert') {
+          const idx = demoStore[table].findIndex(item => String(item[pk] || item[pk.toUpperCase()] || item[pk.toLowerCase()]) === String(row[pk]));
+          if (idx >= 0) {
+            demoStore[table][idx] = { ...demoStore[table][idx], ...row };
+          } else {
+            demoStore[table].push(row);
+          }
+        } else {
+          demoStore[table].push(row);
+        }
+
+        if (sb) {
+          try {
+            const pgRow = {};
+            Object.keys(row).forEach(k => {
+              if (k === k.toLowerCase() && typeof row[k] !== 'undefined') {
+                pgRow[k] = row[k];
+              }
+            });
+            if (mode === 'upsert' && pk) {
+              await sb.from(table).upsert(pgRow);
+            } else {
+              await sb.from(table).insert(pgRow);
+            }
+          } catch (e) {
+            console.warn(`Supabase insert row error for ${table}:`, e.message);
+          }
+        }
+
+        insertedCount++;
+      }
+    }
+
+    if (table === 'inventory_ledger' || table === 'transactions_purchase' || table === 'warehouse_stock') {
+      try { await this.syncStockLevels(); } catch(e){}
+    }
+
+    return {
+      success: true,
+      table,
+      count: insertedCount,
+      errors: errors.length > 0 ? errors.slice(0, 5) : [],
+      message: `Successfully uploaded ${insertedCount} records to ${table}.`
+    };
+  },
+
+  // Get record counts for all core tables
+  async getAllTableCounts() {
+    const tables = [
+      'customers',
+      'products',
+      'transactions_purchase',
+      'transactions_sales',
+      'inventory_ledger',
+      'customer_payments',
+      'deposits',
+      'expenses',
+      'settings_banks',
+      'settings_expense_categories',
+      'settings_customer_types',
+      'warehouses',
+      'suppliers',
+      'categories',
+      'brands'
+    ];
+    const counts = {};
+    for (const t of tables) {
+      try {
+        const rows = await this.getData(t);
+        counts[t] = (rows || []).length;
+      } catch (e) {
+        counts[t] = (demoStore[t] || []).length;
+      }
+    }
+    return { success: true, counts };
   }
 };
 

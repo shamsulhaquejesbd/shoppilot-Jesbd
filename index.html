@@ -463,12 +463,36 @@
                 <section id="view_products" class="view-section">
                     <div class="page-header">
                         <div>
-                            <h1><i class="fas fa-boxes"></i> Product Catalog</h1>
+                            <h1><i class="fas fa-boxes" style="color: #4361ee;"></i> Product Catalog</h1>
                             <p class="subtitle">Manage master products, carton units, and pricing</p>
                         </div>
                         <div style="display: flex; gap: 10px; align-items: center;">
-                            <input type="text" id="productSearchInput" class="form-control" placeholder="Search product..." onkeyup="handleProductSearch()" style="width: 250px;">
                             <button class="btn btn-primary" onclick="openProductModal()"><i class="fas fa-plus"></i> Add Product</button>
+                            <button class="btn btn-secondary" onclick="loadProductsData()" title="Refresh Product List"><i class="fas fa-sync-alt"></i> Refresh</button>
+                        </div>
+                    </div>
+
+                    <!-- Products Filter Bar -->
+                    <div class="inventory-filter-bar">
+                        <div class="filter-item">
+                            <label><i class="fas fa-search"></i> Search Product</label>
+                            <input type="text" id="productSearchInput" class="form-control" placeholder="Search product name or ID..." onkeyup="handleProductSearch()">
+                        </div>
+                        <div class="filter-item">
+                            <label><i class="fas fa-tags"></i> Category</label>
+                            <select id="productFilterCategory" class="form-control" onchange="handleProductSearch()">
+                                <option value="">All Categories</option>
+                            </select>
+                        </div>
+                        <div class="filter-item">
+                            <label><i class="fas fa-copyright"></i> Brand</label>
+                            <select id="productFilterBrand" class="form-control" onchange="handleProductSearch()">
+                                <option value="">All Brands</option>
+                            </select>
+                        </div>
+                        <div class="filter-item">
+                            <label>&nbsp;</label>
+                            <button class="btn btn-secondary" onclick="resetProductFilters()" style="height: 42px; width: 100%;" title="Reset Filters"><i class="fas fa-undo"></i></button>
                         </div>
                     </div>
 
@@ -768,9 +792,20 @@
                             <button class="btn btn-primary" onclick="openCustomerModal()"><i class="fas fa-user-plus"></i> Add Customer</button>
                         </div>
                     </div>
-                    <div class="stats-grid">
-                        <div class="stat-card"><div style="color:#64748b; font-weight:700;">Total Customers</div><div class="stat-value" id="totalCustomersCount">0</div></div>
-                        <div class="stat-card"><div style="color:#64748b; font-weight:700;">Total Outstanding Dues</div><div class="stat-value" id="totalOutstandingDues" style="color:var(--danger)">৳ 0.00</div></div>
+                    <div class="stats-grid" id="customerStatsGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                        <div class="stat-card" style="border-left: 4px solid #4361ee; background: white; padding: 18px 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); cursor: pointer;" onclick="filterCustomersByType('')" title="Click to show all customers">
+                            <div style="color:#64748b; font-weight:700; font-size: 0.82rem; display: flex; align-items: center; gap: 6px;">
+                                <i class="fas fa-users" style="color:#4361ee;"></i> Total Customers
+                            </div>
+                            <div class="stat-value" id="totalCustomersCount" style="font-size: 1.55rem; font-weight: 800; color: #0f172a; margin-top: 6px;">0</div>
+                        </div>
+                        <div class="stat-card" style="border-left: 4px solid #ef4444; background: white; padding: 18px 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                            <div style="color:#64748b; font-weight:700; font-size: 0.82rem; display: flex; align-items: center; gap: 6px;">
+                                <i class="fas fa-file-invoice-dollar" style="color:#ef4444;"></i> Total Outstanding Dues
+                            </div>
+                            <div class="stat-value" id="totalOutstandingDues" style="font-size: 1.55rem; font-weight: 800; color:#ef4444; margin-top: 6px;">৳ 0.00</div>
+                        </div>
+                        <div id="customerTypeDuesCardsContainer" style="display: contents;"></div>
                     </div>
                     <div class="chart-card">
                         <div class="table-responsive">

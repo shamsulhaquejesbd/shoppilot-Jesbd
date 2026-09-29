@@ -140,6 +140,13 @@ window.loadGlobalMetadata = function() {
             const id = c.Category_ID || c.category_id;
             return `<option value="${id}">${name}${isInactive ? ' (Inactive)' : ''}</option>`;
         }).join('');
+        const prodCat = document.getElementById('productFilterCategory');
+        if (prodCat) prodCat.innerHTML = '<option value="">All Categories</option>' + (data || []).map(c => {
+            const isInactive = c.Status === 'Inactive' || c.status === 'Inactive';
+            const name = c.Category_Name || c.category_name;
+            const id = c.Category_ID || c.category_id;
+            return `<option value="${id}">${name}${isInactive ? ' (Inactive)' : ''}</option>`;
+        }).join('');
         const payCat = document.getElementById('pay_category');
         if (payCat) payCat.innerHTML = '<option value="">All / General</option>' + (data || []).map(c => {
             const name = c.Category_Name || c.category_name;
@@ -170,6 +177,13 @@ window.loadGlobalMetadata = function() {
         }).join('');
         const invBrand = document.getElementById('invFilterBrand');
         if (invBrand) invBrand.innerHTML = '<option value="">All Brands</option>' + (data || []).map(b => {
+            const isInactive = b.Status === 'Inactive' || b.status === 'Inactive';
+            const name = b.Brand_Name || b.brand_name;
+            const id = b.Brand_ID || b.brand_id;
+            return `<option value="${id}">${name}${isInactive ? ' (Inactive)' : ''}</option>`;
+        }).join('');
+        const prodBrand = document.getElementById('productFilterBrand');
+        if (prodBrand) prodBrand.innerHTML = '<option value="">All Brands</option>' + (data || []).map(b => {
             const isInactive = b.Status === 'Inactive' || b.status === 'Inactive';
             const name = b.Brand_Name || b.brand_name;
             const id = b.Brand_ID || b.brand_id;
@@ -432,7 +446,8 @@ window.loadTopProducts = function() {
 
 // PRODUCTS
 window.loadProductsData = function() {
-    document.getElementById('productTableBody').innerHTML = '<tr><td colspan="11" class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>';
+    const tbody = document.getElementById('productTableBody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="11" class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>';
     google.script.run.withSuccessHandler(prods => {
         const unique = [];
         const seen = new Set();
@@ -446,23 +461,70 @@ window.loadProductsData = function() {
             }
         });
         allProducts = unique;
-        filteredProducts = [...allProducts];
-        prodPage = 1;
-        renderProductTable();
+        populateProductFilterDropdowns();
+        handleProductSearch();
     }).getData('Products');
 };
 
+function populateProductFilterDropdowns() {
+    const catSel = document.getElementById('productFilterCategory');
+    const brandSel = document.getElementById('productFilterBrand');
+
+    if (catSel && catSel.children.length <= 1) {
+        const uniqueCatIds = Array.from(new Set(allProducts.map(p => p.Category_ID || p.category_id).filter(Boolean)));
+        catSel.innerHTML = '<option value="">All Categories</option>' + uniqueCatIds.map(cId => {
+            const name = categoryMap[cId] || cId;
+            return `<option value="${escapeHtml(cId)}">${escapeHtml(name)}</option>`;
+        }).join('');
+    }
+
+    if (brandSel && brandSel.children.length <= 1) {
+        const uniqueBrandIds = Array.from(new Set(allProducts.map(p => p.Brand_ID || p.brand_id).filter(Boolean)));
+        brandSel.innerHTML = '<option value="">All Brands</option>' + uniqueBrandIds.map(bId => {
+            const name = brandMap[bId] || bId;
+            return `<option value="${escapeHtml(bId)}">${escapeHtml(name)}</option>`;
+        }).join('');
+    }
+}
+
 window.handleProductSearch = function() {
-    const q = document.getElementById('productSearchInput').value.toLowerCase().trim();
-    filteredProducts = allProducts.filter(p => p.Product_Name.toLowerCase().includes(q) || p.Product_ID.toLowerCase().includes(q));
+    const q = (document.getElementById('productSearchInput')?.value || '').toLowerCase().trim();
+    const cat = (document.getElementById('productFilterCategory')?.value || '').trim();
+    const brand = (document.getElementById('productFilterBrand')?.value || '').trim();
+
+    filteredProducts = allProducts.filter(p => {
+        const pName = (p.Product_Name || p.product_name || '').toLowerCase();
+        const pId = (p.Product_ID || p.product_id || '').toLowerCase();
+        const pCat = String(p.Category_ID || p.category_id || '').trim();
+        const pCatName = (categoryMap[pCat] || pCat).toLowerCase();
+        const pBrand = String(p.Brand_ID || p.brand_id || '').trim();
+        const pBrandName = (brandMap[pBrand] || pBrand).toLowerCase();
+
+        const matchesQ = !q || pName.includes(q) || pId.includes(q);
+        const matchesCat = !cat || pCat === cat || pCatName === cat.toLowerCase();
+        const matchesBrand = !brand || pBrand === brand || pBrandName === brand.toLowerCase();
+
+        return matchesQ && matchesCat && matchesBrand;
+    });
+
     prodPage = 1;
     renderProductTable();
+};
+
+window.resetProductFilters = function() {
+    const inp = document.getElementById('productSearchInput');
+    if (inp) inp.value = '';
+    const cat = document.getElementById('productFilterCategory');
+    if (cat) cat.value = '';
+    const brand = document.getElementById('productFilterBrand');
+    if (brand) brand.value = '';
+    handleProductSearch();
 };
 
 window.renderProductTable = function() {
     const tbody = document.getElementById('productTableBody');
     if (!filteredProducts.length) {
-        tbody.innerHTML = '<tr><td colspan="11" class="text-center">No products found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11" class="text-center" style="padding: 24px; color: #64748b;">No products found matching filters.</td></tr>';
         updateProdPagination(0);
         return;
     }
@@ -496,7 +558,6 @@ window.renderProductTable = function() {
                 ${CURRENT_USER.Role === 'Admin' ? `
                     <div style="display:inline-flex; gap:6px;">
                         <button type="button" class="btn-icon btn-edit" onclick="editProduct('${escapeHtml(pid)}')" title="Edit Product"><i class="fas fa-edit"></i></button>
-                        <button type="button" class="btn-icon" onclick="deleteProduct('${escapeHtml(pid)}')" title="Delete Product" style="color:#ef4444; background:none; border:none; cursor:pointer;"><i class="fas fa-trash-alt"></i></button>
                     </div>
                 ` : ''}
             </td>
@@ -2864,14 +2925,49 @@ function populateInventoryFilterDropdowns() {
     }
 }
 
+window.renderStockCtnPcsCell = function(qty, upc, isTotal = false) {
+    qty = parseFloat(qty) || 0;
+    upc = parseInt(upc) || 1;
+    if (qty === 0) {
+        return `<span style="color:#94a3b8; font-weight:500;">0</span>`;
+    }
+    const ctn = Math.floor(qty / upc);
+    const remPcs = Math.round(qty % upc);
+
+    let mainLine = '';
+    if (upc > 1) {
+        if (ctn > 0 && remPcs > 0) {
+            mainLine = `<span style="font-weight:800;">${formatBD(ctn)}</span> <span style="font-size:0.74rem; font-weight:700; color:${isTotal ? '#047857' : '#475569'};">CTN</span> <span style="color:#94a3b8;">+</span> <span style="font-weight:800;">${formatBD(remPcs)}</span> <span style="font-size:0.74rem; font-weight:700; color:${isTotal ? '#047857' : '#475569'};">pcs</span>`;
+        } else if (ctn > 0) {
+            mainLine = `<span style="font-weight:800;">${formatBD(ctn)}</span> <span style="font-size:0.74rem; font-weight:700; color:${isTotal ? '#047857' : '#475569'};">CTN</span>`;
+        } else {
+            mainLine = `<span style="font-weight:800;">${formatBD(remPcs)}</span> <span style="font-size:0.74rem; font-weight:700; color:${isTotal ? '#047857' : '#475569'};">pcs</span>`;
+        }
+    } else {
+        mainLine = `<span style="font-weight:800;">${formatBD(qty)}</span> <span style="font-size:0.74rem; font-weight:700; color:${isTotal ? '#047857' : '#475569'};">pcs</span>`;
+    }
+
+    if (isTotal) {
+        return `
+            <div style="color:#059669; font-size:0.92rem; line-height:1.25;">${mainLine}</div>
+            <div style="font-size:0.73rem; color:#047857; font-weight:700; margin-top:3px;">(${formatBD(qty)} pcs)</div>
+        `;
+    }
+
+    return `
+        <div style="color:#0f172a; font-size:0.86rem; line-height:1.25;">${mainLine}</div>
+        <div style="font-size:0.73rem; color:#64748b; font-weight:600; margin-top:3px;">(${formatBD(qty)} pcs)</div>
+    `;
+};
+
 window.renderInventoryMatrixTable = function() {
     const thead = document.getElementById('inventoryTableHead');
     if (thead) {
         thead.innerHTML = `<tr>
             <th style="width: 80px;">ID</th>
             <th>Product Name</th>
-            ${inventoryWarehouses.map(w => `<th style="text-align:center;">${escapeHtml(w.Warehouse_Name)}</th>`).join('')}
-            <th style="text-align:center;">Total Stock</th>
+            ${inventoryWarehouses.map(w => `<th style="text-align:center;">${escapeHtml(w.Warehouse_Name)}<div style="font-size:0.68rem; font-weight:600; color:#64748b; text-transform:none; margin-top:2px;">CTN / PCS</div></th>`).join('')}
+            <th style="text-align:center;">Total Stock<div style="font-size:0.68rem; font-weight:600; color:#047857; text-transform:none; margin-top:2px;">CTN / PCS</div></th>
             <th style="text-align:center;">Status</th>
             <th style="text-align:center; width: 100px;">Action</th>
         </tr>`;
@@ -2887,23 +2983,30 @@ window.renderInventoryMatrixTable = function() {
 
     tbody.innerHTML = filteredInventoryMatrix.map(p => {
         const total = parseFloat(p.Stock) || 0;
+        const upc = parseInt(p.UPC || p.upc) || 1;
         return `
         <tr>
             <td><strong style="color: #4338ca;">${escapeHtml(p.Product_ID)}</strong></td>
             <td>
                 <div style="font-weight: 700; color: #0f172a;">${escapeHtml(p.Product_Name)}</div>
-                ${p.Category_Name ? `<div style="font-size: 0.72rem; color: #64748b; margin-top: 1px;">${escapeHtml(p.Category_Name)}${p.Brand_Name ? ' • ' + escapeHtml(p.Brand_Name) : ''}</div>` : ''}
+                <div style="font-size: 0.72rem; color: #64748b; margin-top: 3px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                    ${p.Category_Name ? `<span>${escapeHtml(p.Category_Name)}</span>` : ''}
+                    ${p.Brand_Name ? `<span>• ${escapeHtml(p.Brand_Name)}</span>` : ''}
+                    <span style="background: #eef2ff; color: #4338ca; padding: 1px 6px; border-radius: 4px; font-weight: 700;">1 CTN = ${upc} pcs</span>
+                </div>
             </td>
             ${inventoryWarehouses.map(w => {
                 const whStk = (p.Warehouse_Stock && p.Warehouse_Stock[w.Warehouse_ID] !== undefined) ? p.Warehouse_Stock[w.Warehouse_ID] : 0;
                 const isZero = whStk === 0;
-                return `<td style="text-align:center; font-weight:${isZero ? '500' : '800'}; color:${isZero ? '#94a3b8' : '#1e293b'}; background:${isZero ? 'transparent' : 'rgba(99, 102, 241, 0.03)'};">
-                    ${formatBD(whStk)}
+                return `<td style="text-align:center; vertical-align:middle; background:${isZero ? 'transparent' : 'rgba(99, 102, 241, 0.03)'}; padding: 10px 8px;">
+                    ${renderStockCtnPcsCell(whStk, upc, false)}
                 </td>`;
             }).join('')}
-            <td style="text-align:center; font-weight:900; color:#10b981; font-size: 0.95rem;">${formatBD(total)}</td>
-            <td style="text-align:center;"><span class="badge ${total <= 10 ? 'badge-low' : 'badge-ok'}">${total <= 10 ? 'Low' : 'In Stock'}</span></td>
-            <td style="text-align:center;">
+            <td style="text-align:center; vertical-align:middle; background:rgba(16, 185, 129, 0.04); padding: 10px 8px;">
+                ${renderStockCtnPcsCell(total, upc, true)}
+            </td>
+            <td style="text-align:center; vertical-align:middle;"><span class="badge ${total <= 10 ? 'badge-low' : 'badge-ok'}">${total <= 10 ? 'Low' : 'In Stock'}</span></td>
+            <td style="text-align:center; vertical-align:middle;">
                 <button type="button" class="btn btn-sm btn-outline-primary" onclick="quickTransferForProduct('${p.Product_ID}', '${escapeHtml(p.Product_Name.replace(/'/g, "\\'"))}')" style="padding: 4px 10px; font-size: 0.75rem; border-radius: 6px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
                     <i class="fas fa-exchange-alt"></i> Transfer
                 </button>
@@ -3422,6 +3525,70 @@ window.loadRecentTransfersList = function() {
 };
 
 // CUSTOMERS
+let currentCustomerTypeFilter = '';
+
+window.filterCustomersByType = function(typeName) {
+    if (currentCustomerTypeFilter === typeName) {
+        currentCustomerTypeFilter = ''; // toggle off
+    } else {
+        currentCustomerTypeFilter = typeName || '';
+    }
+    renderCustomerTypeDueCards();
+    handleCustomerSearch();
+};
+
+window.renderCustomerTypeDueCards = function() {
+    const container = document.getElementById('customerTypeDuesCardsContainer');
+    if (!container) return;
+
+    const typeDues = {};
+    const typeCounts = {};
+
+    allCustomers.forEach(c => {
+        const cType = (c.Customer_Type || c.customer_type || 'Retail').trim();
+        const due = parseFloat(c.Current_Due !== undefined ? c.Current_Due : c.current_due) || 0;
+        typeDues[cType] = (typeDues[cType] || 0) + due;
+        typeCounts[cType] = (typeCounts[cType] || 0) + 1;
+    });
+
+    const typeConfig = {
+        'Retail': { color: '#0284c7', bg: '#f0f9ff', icon: 'fas fa-store' },
+        'Wholesale': { color: '#9333ea', bg: '#faf5ff', icon: 'fas fa-boxes' },
+        'Corporate': { color: '#d97706', bg: '#fffbeb', icon: 'fas fa-building' },
+        'Distributor': { color: '#059669', bg: '#ecfdf5', icon: 'fas fa-truck' },
+        'Dealer': { color: '#4f46e5', bg: '#eef2ff', icon: 'fas fa-handshake' }
+    };
+
+    const types = Object.keys(typeDues).sort((a, b) => (typeDues[b] || 0) - (typeDues[a] || 0));
+
+    if (!types.length) {
+        container.innerHTML = '';
+        return;
+    }
+
+    container.innerHTML = types.map(t => {
+        const conf = typeConfig[t] || { color: '#0d9488', bg: '#f0fdfa', icon: 'fas fa-tag' };
+        const due = typeDues[t] || 0;
+        const count = typeCounts[t] || 0;
+        const isActive = currentCustomerTypeFilter && currentCustomerTypeFilter.toLowerCase() === t.toLowerCase();
+
+        return `
+        <div class="stat-card" onclick="filterCustomersByType('${escapeHtml(t)}')" title="Click to filter by ${escapeHtml(t)}" style="border-left: 4px solid ${conf.color}; background: white; padding: 18px 20px; border-radius: 12px; box-shadow: ${isActive ? '0 0 0 2px ' + conf.color : '0 1px 3px rgba(0,0,0,0.05)'}; cursor: pointer; transition: all 0.2s;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="color:#64748b; font-weight:700; font-size: 0.82rem; display: flex; align-items: center; gap: 6px;">
+                    <i class="${conf.icon}" style="color: ${conf.color};"></i> ${escapeHtml(t)} Due
+                </div>
+                <span style="font-size: 0.72rem; font-weight: 700; background: ${conf.bg}; color: ${conf.color}; padding: 2px 8px; border-radius: 9999px;">
+                    ${count} ${count === 1 ? 'client' : 'clients'}
+                </span>
+            </div>
+            <div class="stat-value" style="font-size: 1.55rem; font-weight: 800; color: ${due > 0 ? conf.color : '#10b981'}; margin-top: 6px;">
+                ৳ ${formatBD(due)}
+            </div>
+        </div>`;
+    }).join('');
+};
+
 window.loadCustomerData = function() {
     google.script.run.withSuccessHandler(custs => {
         allCustomers = custs || [];
@@ -3429,18 +3596,24 @@ window.loadCustomerData = function() {
         let totalDue = allCustomers.reduce((acc, c) => acc + (parseFloat(c.Current_Due) || 0), 0);
         document.getElementById('totalCustomersCount').textContent = allCustomers.length;
         document.getElementById('totalOutstandingDues').textContent = '৳ ' + formatBD(totalDue);
+        renderCustomerTypeDueCards();
         renderCustomerTable();
     }).getData('Customers');
 };
 
 window.handleCustomerSearch = function() {
     const q = (document.getElementById('customerSearchInput')?.value || '').toLowerCase().trim();
-    filteredCustomers = allCustomers.filter(c => 
-        (c.Customer_Name || '').toLowerCase().includes(q) || 
-        (c.Phone && String(c.Phone).toLowerCase().includes(q)) ||
-        (c.Address && String(c.Address).toLowerCase().includes(q)) ||
-        ((c.Customer_Type || c.customer_type || '').toLowerCase().includes(q))
-    );
+    filteredCustomers = allCustomers.filter(c => {
+        const cType = (c.Customer_Type || c.customer_type || 'Retail').trim();
+        const matchesType = !currentCustomerTypeFilter || cType.toLowerCase() === currentCustomerTypeFilter.toLowerCase();
+        const matchesQ = !q || 
+            (c.Customer_Name || '').toLowerCase().includes(q) || 
+            (c.Phone && String(c.Phone).toLowerCase().includes(q)) ||
+            (c.Address && String(c.Address).toLowerCase().includes(q)) ||
+            (cType.toLowerCase().includes(q));
+
+        return matchesType && matchesQ;
+    });
     renderCustomerTable();
 };
 
