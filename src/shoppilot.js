@@ -93,7 +93,9 @@ window.switchAppView = function(viewName) {
     else if (viewName === 'inventory') loadInventoryData();
     else if (viewName === 'products') loadProductsData();
     else if (viewName === 'sales') initPosView();
+    else if (viewName === 'returns') initSalesReturnsView();
     else if (viewName === 'purchases') loadPurchasesData();
+    else if (viewName === 'purchase_returns') initPurchaseReturnsView();
     else if (viewName === 'customers') loadCustomerData();
     else if (viewName === 'suppliers') loadSupplierData();
     else if (viewName === 'reports') initReportsView();
@@ -2780,126 +2782,643 @@ window.renderPurchasesTable = function() {
 
 window.changePurchPage = function(dir) { purchPage += dir; renderPurchasesTable(); };
 
-// INVENTORY STOCK LEVELS
-window.loadInventoryData = function() {
-    google.script.run.withSuccessHandler(warehouses => {
-        warehouseList = warehouses || [];
-        document.getElementById('inventoryTableHead').innerHTML = `<tr><th>ID</th><th>Product Name</th>${warehouses.map(w => `<th style="text-align:center;">${w.Warehouse_Name}</th>`).join('')}<th style="text-align:center;">Total Stock</th><th>Status</th></tr>`;
-        google.script.run.withSuccessHandler(prods => {
-            allProducts = prods || [];
-            filteredProducts = [...allProducts];
-            renderInventoryMatrixTable();
-        }).getData('Products');
-    }).getWarehouses();
+// INVENTORY STOCK LEVELS & MATRIX
+let inventoryWarehouses = [];
+let inventoryMatrixData = [];
+let filteredInventoryMatrix = [];
+let pageTrf_availableBatches = [];
+
+window.switchInvSubTab = function(tabName) {
+    const matrixArea = document.getElementById('invSubTabMatrixArea');
+    const trfArea = document.getElementById('invSubTabTransfersArea');
+    const btnMatrix = document.getElementById('tabBtnInvMatrix');
+    const btnTrf = document.getElementById('tabBtnInvTransfers');
+
+    if (tabName === 'transfers') {
+        if (matrixArea) matrixArea.style.display = 'none';
+        if (trfArea) trfArea.style.display = 'block';
+        if (btnMatrix) {
+            btnMatrix.classList.remove('btn-primary');
+            btnMatrix.classList.add('btn-secondary');
+        }
+        if (btnTrf) {
+            btnTrf.classList.remove('btn-secondary');
+            btnTrf.classList.add('btn-primary');
+        }
+        initPageTransferForm();
+        loadRecentTransfersList();
+    } else {
+        if (matrixArea) matrixArea.style.display = 'block';
+        if (trfArea) trfArea.style.display = 'none';
+        if (btnMatrix) {
+            btnMatrix.classList.remove('btn-secondary');
+            btnMatrix.classList.add('btn-primary');
+        }
+        if (btnTrf) {
+            btnTrf.classList.remove('btn-primary');
+            btnTrf.classList.add('btn-secondary');
+        }
+    }
 };
 
-window.renderInventoryMatrixTable = function() {
+window.loadInventoryData = function() {
     const tbody = document.getElementById('inventoryTableBody');
-    tbody.innerHTML = filteredProducts.map(p => `
+    if (tbody) tbody.innerHTML = '<tr><td colspan="10" class="text-center" style="padding: 20px;"><i class="fas fa-spinner fa-spin"></i> Loading live warehouse stock...</td></tr>';
+
+    google.script.run
+        .withSuccessHandler(res => {
+            if (res && res.success) {
+                inventoryWarehouses = res.warehouses || [];
+                warehouseList = inventoryWarehouses;
+                inventoryMatrixData = res.matrix || [];
+                filteredInventoryMatrix = [...inventoryMatrixData];
+
+                populateInventoryFilterDropdowns();
+                renderInventoryMatrixTable();
+
+                if (typeof loadRecentTransfersList === 'function') {
+                    loadRecentTransfersList();
+                }
+            } else {
+                if (tbody) tbody.innerHTML = '<tr><td colspan="10" class="text-center" style="padding: 20px; color:#ef4444;">Failed to load warehouse stock data.</td></tr>';
+            }
+        })
+        .withFailureHandler(err => {
+            if (tbody) tbody.innerHTML = `<tr><td colspan="10" class="text-center" style="padding: 20px; color:#ef4444;">Error: ${escapeHtml((err && err.message) || 'Failed to load inventory.')}</td></tr>`;
+        })
+        .getInventoryMatrix();
+};
+
+function populateInventoryFilterDropdowns() {
+    const catSel = document.getElementById('invFilterCategory');
+    const brandSel = document.getElementById('invFilterBrand');
+
+    if (catSel && (!catSel.children.length || catSel.children.length <= 1)) {
+        const uniqueCats = Array.from(new Set(inventoryMatrixData.map(p => p.Category_Name).filter(Boolean)));
+        catSel.innerHTML = '<option value="">All Categories</option>' + uniqueCats.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    }
+
+    if (brandSel && (!brandSel.children.length || brandSel.children.length <= 1)) {
+        const uniqueBrands = Array.from(new Set(inventoryMatrixData.map(p => p.Brand_Name).filter(Boolean)));
+        brandSel.innerHTML = '<option value="">All Brands</option>' + uniqueBrands.map(b => `<option value="${escapeHtml(b)}">${escapeHtml(b)}</option>`).join('');
+    }
+}
+
+window.renderInventoryMatrixTable = function() {
+    const thead = document.getElementById('inventoryTableHead');
+    if (thead) {
+        thead.innerHTML = `<tr>
+            <th style="width: 80px;">ID</th>
+            <th>Product Name</th>
+            ${inventoryWarehouses.map(w => `<th style="text-align:center;">${escapeHtml(w.Warehouse_Name)}</th>`).join('')}
+            <th style="text-align:center;">Total Stock</th>
+            <th style="text-align:center;">Status</th>
+            <th style="text-align:center; width: 100px;">Action</th>
+        </tr>`;
+    }
+
+    const tbody = document.getElementById('inventoryTableBody');
+    if (!tbody) return;
+
+    if (!filteredInventoryMatrix.length) {
+        tbody.innerHTML = `<tr><td colspan="${inventoryWarehouses.length + 5}" class="text-center" style="padding: 25px; color: #64748b;">No products found matching filters.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = filteredInventoryMatrix.map(p => {
+        const total = parseFloat(p.Stock) || 0;
+        return `
         <tr>
-            <td><strong>${p.Product_ID}</strong></td>
-            <td><strong>${p.Product_Name}</strong></td>
-            ${warehouseList.map(() => `<td style="text-align:center;">${Math.round(p.Stock / warehouseList.length)}</td>`).join('')}
-            <td style="text-align:center; font-weight:800; color:#10b981;">${p.Stock}</td>
-            <td><span class="badge ${p.Stock <= 10 ? 'badge-low' : 'badge-ok'}">${p.Stock <= 10 ? 'Low' : 'OK'}</span></td>
-        </tr>`).join('');
+            <td><strong style="color: #4338ca;">${escapeHtml(p.Product_ID)}</strong></td>
+            <td>
+                <div style="font-weight: 700; color: #0f172a;">${escapeHtml(p.Product_Name)}</div>
+                ${p.Category_Name ? `<div style="font-size: 0.72rem; color: #64748b; margin-top: 1px;">${escapeHtml(p.Category_Name)}${p.Brand_Name ? ' • ' + escapeHtml(p.Brand_Name) : ''}</div>` : ''}
+            </td>
+            ${inventoryWarehouses.map(w => {
+                const whStk = (p.Warehouse_Stock && p.Warehouse_Stock[w.Warehouse_ID] !== undefined) ? p.Warehouse_Stock[w.Warehouse_ID] : 0;
+                const isZero = whStk === 0;
+                return `<td style="text-align:center; font-weight:${isZero ? '500' : '800'}; color:${isZero ? '#94a3b8' : '#1e293b'}; background:${isZero ? 'transparent' : 'rgba(99, 102, 241, 0.03)'};">
+                    ${formatBD(whStk)}
+                </td>`;
+            }).join('')}
+            <td style="text-align:center; font-weight:900; color:#10b981; font-size: 0.95rem;">${formatBD(total)}</td>
+            <td style="text-align:center;"><span class="badge ${total <= 10 ? 'badge-low' : 'badge-ok'}">${total <= 10 ? 'Low' : 'In Stock'}</span></td>
+            <td style="text-align:center;">
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="quickTransferForProduct('${p.Product_ID}', '${escapeHtml(p.Product_Name.replace(/'/g, "\\'"))}')" style="padding: 4px 10px; font-size: 0.75rem; border-radius: 6px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                    <i class="fas fa-exchange-alt"></i> Transfer
+                </button>
+            </td>
+        </tr>`;
+    }).join('');
 };
 
 window.handleInventoryFilters = function() {
     const q = (document.getElementById('invSearchName')?.value || '').toLowerCase().trim();
-    filteredProducts = allProducts.filter(p => p.Product_Name.toLowerCase().includes(q) || p.Product_ID.toLowerCase().includes(q));
+    const cat = document.getElementById('invFilterCategory')?.value || '';
+    const brand = document.getElementById('invFilterBrand')?.value || '';
+
+    filteredInventoryMatrix = inventoryMatrixData.filter(p => {
+        const matchesQ = !q || p.Product_Name.toLowerCase().includes(q) || p.Product_ID.toLowerCase().includes(q);
+        const matchesCat = !cat || p.Category_Name === cat || p.Category_ID === cat;
+        const matchesBrand = !brand || p.Brand_Name === brand || p.Brand_ID === brand;
+        return matchesQ && matchesCat && matchesBrand;
+    });
+
     renderInventoryMatrixTable();
 };
 
 window.resetInvFilters = function() {
     const inp = document.getElementById('invSearchName');
     if (inp) inp.value = '';
+    const cat = document.getElementById('invFilterCategory');
+    if (cat) cat.value = '';
+    const brand = document.getElementById('invFilterBrand');
+    if (brand) brand.value = '';
     handleInventoryFilters();
 };
 
-// TRANSFERS
-window.openTransferModal = function() {
+// QUICK TRANSFER ACTION FOR TABLE ROWS
+window.quickTransferForProduct = function(productId, productName) {
+    openTransferModal(productId, productName);
+};
+
+// STOCK TRANSFER MODAL LOGIC
+window.openTransferModal = function(preselectProdId = null, preselectProdName = null) {
     const s = document.getElementById('trf_source');
     const d = document.getElementById('trf_dest');
-    const opts = '<option value="">Select Warehouse</option>' + (warehouseList || []).map(w => `<option value="${w.Warehouse_ID}">${w.Warehouse_Name}</option>`).join('');
-    if (s) s.innerHTML = opts;
-    if (d) d.innerHTML = opts;
-    const m = document.getElementById('transferModal');
-    if (m) m.style.display = 'flex';
+
+    const ensureWarehouses = (cb) => {
+        if (inventoryWarehouses && inventoryWarehouses.length) {
+            cb(inventoryWarehouses);
+        } else {
+            google.script.run.withSuccessHandler(wList => {
+                inventoryWarehouses = wList || [];
+                warehouseList = inventoryWarehouses;
+                cb(inventoryWarehouses);
+            }).getWarehouses();
+        }
+    };
+
+    ensureWarehouses(whs => {
+        const opts = '<option value="">Select Warehouse</option>' + (whs || []).map(w => `<option value="${w.Warehouse_ID}">${escapeHtml(w.Warehouse_Name)}</option>`).join('');
+        if (s) s.innerHTML = opts;
+        if (d) d.innerHTML = opts;
+
+        // Reset inputs
+        const searchInp = document.getElementById('trf_search_input');
+        if (searchInp) {
+            searchInp.value = '';
+            searchInp.disabled = true;
+            searchInp.placeholder = "Select Source warehouse first...";
+        }
+        const availInp = document.getElementById('trf_available');
+        if (availInp) availInp.value = '';
+        const qtyInp = document.getElementById('trf_qty');
+        if (qtyInp) qtyInp.value = '';
+        const noteInp = document.getElementById('trf_note');
+        if (noteInp) noteInp.value = '';
+        const idInp = document.getElementById('trf_selected_id');
+        if (idInp) idInp.value = '';
+        const batchInp = document.getElementById('trf_selected_batch');
+        if (batchInp) batchInp.value = '';
+        const dd = document.getElementById('trf_dropdown');
+        if (dd) dd.style.display = 'none';
+
+        // If preselected product is requested, pick warehouse where product has stock
+        if (preselectProdId) {
+            const prodRow = inventoryMatrixData.find(p => p.Product_ID === preselectProdId);
+            if (prodRow && prodRow.Warehouse_Stock) {
+                // Find warehouse with highest stock
+                let bestWh = '';
+                let maxStock = 0;
+                for (const [wId, stk] of Object.entries(prodRow.Warehouse_Stock)) {
+                    if (stk > maxStock) {
+                        maxStock = stk;
+                        bestWh = wId;
+                    }
+                }
+                if (bestWh && s) {
+                    s.value = bestWh;
+                    onTrfSourceChange(() => {
+                        trf_selectProductById(preselectProdId);
+                    });
+                }
+            }
+        }
+
+        const m = document.getElementById('transferModal');
+        if (m) m.style.display = 'flex';
+    });
 };
 
-window.onTrfSourceChange = function() {
+window.onTrfSourceChange = function(onLoadedCallback) {
     const src = document.getElementById('trf_source')?.value;
     const inp = document.getElementById('trf_search_input');
-    if (inp) inp.disabled = !src;
-    if (src) google.script.run.withSuccessHandler(data => { trf_availableBatches = data || []; }).getBatchesForSale(src);
+    const avail = document.getElementById('trf_available');
+    const idInp = document.getElementById('trf_selected_id');
+    const batchInp = document.getElementById('trf_selected_batch');
+    const dd = document.getElementById('trf_dropdown');
+
+    if (idInp) idInp.value = '';
+    if (batchInp) batchInp.value = '';
+    if (avail) avail.value = '';
+    if (dd) dd.style.display = 'none';
+
+    if (!src) {
+        if (inp) {
+            inp.value = '';
+            inp.disabled = true;
+            inp.placeholder = "Select Source warehouse first...";
+        }
+        return;
+    }
+
+    if (inp) {
+        inp.disabled = true;
+        inp.value = '';
+        inp.placeholder = "Loading warehouse inventory...";
+    }
+
+    google.script.run
+        .withSuccessHandler(data => {
+            trf_availableBatches = (data || []).filter(b => (parseFloat(b.stock) || 0) > 0);
+            if (inp) {
+                inp.disabled = false;
+                inp.placeholder = trf_availableBatches.length ? "Click or type to search products..." : "No available stock in this warehouse";
+            }
+            if (typeof onLoadedCallback === 'function') onLoadedCallback();
+        })
+        .withFailureHandler(() => {
+            if (inp) {
+                inp.disabled = false;
+                inp.placeholder = "Failed to load products";
+            }
+        })
+        .getBatchesForSale(src);
 };
 
-window.trf_selectProduct = function(idx) {
-    const b = trf_availableBatches[idx];
-    if (!b) return;
-    const inp = document.getElementById('trf_search_input');
-    if (inp) inp.value = b.name;
-    const sIdx = document.getElementById('trf_selected_idx');
-    if (sIdx) sIdx.value = idx;
-    const avail = document.getElementById('trf_available');
-    if (avail) avail.value = b.stock;
-    const dd = document.getElementById('trf_dropdown');
-    if (dd) dd.style.display = 'none';
+window.trf_showAllProducts = function() {
+    trf_filterProducts(document.getElementById('trf_search_input')?.value || '');
 };
 
 window.trf_filterProducts = function(val) {
     const dd = document.getElementById('trf_dropdown');
     if (!dd) return;
-    if (!val) { dd.style.display = 'none'; return; }
-    const q = val.toLowerCase().trim();
-    const matches = (trf_availableBatches || []).filter(b => b.name.toLowerCase().includes(q));
+    const q = (val || '').toLowerCase().trim();
+    const matches = (trf_availableBatches || []).filter(b => !q || b.name.toLowerCase().includes(q) || b.id.toLowerCase().includes(q) || (b.batch && b.batch.toLowerCase().includes(q)));
+
     if (matches.length) {
-        dd.innerHTML = matches.map((b, i) => `
-            <div class="trf-drop-item" onclick="trf_selectProduct(${i})">
-                <strong>${b.name}</strong> - Stock: ${b.stock}
+        dd.innerHTML = matches.map(b => `
+            <div onclick="trf_selectProductById('${escapeHtml(b.id)}', '${escapeHtml(b.batch || '')}')" style="padding: 10px 14px; border-bottom: 1px solid #f1f5f9; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
+                <div>
+                    <strong style="color: #0f172a; font-size: 0.85rem;">${escapeHtml(b.name)}</strong>
+                    <div style="font-size: 0.75rem; color: #64748b;">${escapeHtml(b.id)} ${b.batch ? '| Batch: ' + escapeHtml(b.batch) : ''}</div>
+                </div>
+                <span style="background: #ecfdf5; color: #059669; font-weight: 800; padding: 2px 8px; border-radius: 6px; font-size: 0.78rem;">
+                    Stock: ${formatBD(b.stock)}
+                </span>
             </div>`).join('');
         dd.style.display = 'block';
-    } else dd.style.display = 'none';
+    } else {
+        dd.innerHTML = `<div style="padding: 12px; color: #94a3b8; text-align: center; font-size: 0.82rem;">No stocked products found matching "${escapeHtml(val)}"</div>`;
+        dd.style.display = 'block';
+    }
+};
+
+window.trf_selectProductById = function(productId, batchNo = '') {
+    const item = (trf_availableBatches || []).find(b => b.id === productId && (!batchNo || b.batch === batchNo)) || (trf_availableBatches || []).find(b => b.id === productId);
+    if (!item) return;
+
+    const inp = document.getElementById('trf_search_input');
+    if (inp) inp.value = item.name;
+    const idInp = document.getElementById('trf_selected_id');
+    if (idInp) idInp.value = item.id;
+    const batchInp = document.getElementById('trf_selected_batch');
+    if (batchInp) batchInp.value = item.batch || 'BT-STOCK';
+    const avail = document.getElementById('trf_available');
+    if (avail) avail.value = item.stock;
+    const qtyInp = document.getElementById('trf_qty');
+    if (qtyInp) {
+        qtyInp.max = item.stock;
+        qtyInp.value = '';
+        qtyInp.focus();
+    }
+    const dd = document.getElementById('trf_dropdown');
+    if (dd) dd.style.display = 'none';
 };
 
 let isTransferProcessing = false;
 
 window.executeTransfer = function() {
-    if (isTransferProcessing) {
-        console.warn("Transfer is currently being processed. Ignoring multiple clicks.");
-        return;
-    }
-    const idx = parseInt(document.getElementById('trf_selected_idx')?.value);
-    const item = trf_availableBatches[idx];
-    if (!item) return showAlertModal("Validation", "Select a product.");
+    if (isTransferProcessing) return;
+
+    const src = document.getElementById('trf_source')?.value;
+    const dst = document.getElementById('trf_dest')?.value;
+    const productId = document.getElementById('trf_selected_id')?.value;
+    const batchNo = document.getElementById('trf_selected_batch')?.value || 'BT-STOCK';
     const qtyVal = parseFloat(document.getElementById('trf_qty')?.value) || 0;
-    if (qtyVal <= 0) return showAlertModal("Validation", "Enter a valid transfer quantity.");
+    const available = parseFloat(document.getElementById('trf_available')?.value) || 0;
+    const note = document.getElementById('trf_note')?.value || '';
+
+    if (!src) return showAlertModal("Validation", "Please select a Source Warehouse.");
+    if (!dst) return showAlertModal("Validation", "Please select a Destination Warehouse.");
+    if (src === dst) return showAlertModal("Validation", "Source and Destination warehouse cannot be the same.");
+    if (!productId) return showAlertModal("Validation", "Please select a product from the list.");
+    if (qtyVal <= 0) return showAlertModal("Validation", "Please enter a valid transfer quantity greater than 0.");
+    if (qtyVal > available) return showAlertModal("Insufficient Stock", `You cannot transfer ${formatBD(qtyVal)} pcs. Available stock in source warehouse is only ${formatBD(available)} pcs.`);
+
+    const btn = document.getElementById('btnExecuteTransferModal');
+    const origHtml = btn ? btn.innerHTML : '<i class="fas fa-exchange-alt"></i> Complete Transfer';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Transferring...';
+    }
 
     const payload = {
-        sourceWh: document.getElementById('trf_source').value,
-        destWh: document.getElementById('trf_dest').value,
-        productId: item.id,
-        batchNo: item.batch,
+        sourceWh: src,
+        destWh: dst,
+        productId: productId,
+        batchNo: batchNo,
         qty: qtyVal,
-        note: document.getElementById('trf_note')?.value
+        note: note
     };
 
     isTransferProcessing = true;
     google.script.run
         .withSuccessHandler(res => {
             isTransferProcessing = false;
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            }
             if (res && res.success) {
                 closeModal('transferModal');
+                
+                // Immediately refresh both matrix and history
                 loadInventoryData();
-                showAlertModal("Transfer Completed", `Reference: ${res.refId}`);
-            } else showAlertModal("Error", (res && res.error) || "Transfer failed.");
+                loadRecentTransfersList();
+                if (typeof loadWarehouseInfoData === 'function') loadWarehouseInfoData();
+
+                showAlertModal("Stock Transfer Completed", 
+                    `Successfully transferred ${formatBD(qtyVal)} units!\n\n` +
+                    `• Reference: ${res.refId}\n` +
+                    `• Route: ${src} → ${dst}\n\n` +
+                    `Stock balances across both warehouses have been updated.`
+                );
+            } else {
+                showAlertModal("Error", (res && res.error) || "Stock transfer failed.");
+            }
         })
         .withFailureHandler(err => {
             isTransferProcessing = false;
-            showAlertModal("Error", (err && err.message) ? err.message : "Transfer failed.");
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            }
+            showAlertModal("Error", (err && err.message) ? err.message : "Stock transfer failed.");
         })
         .processStockTransfer(payload);
+};
+
+// IN-PAGE TRANSFER FORM LOGIC (FOR THE TRANSFERS TAB)
+function initPageTransferForm() {
+    const s = document.getElementById('page_trf_source');
+    const d = document.getElementById('page_trf_dest');
+    if (!s || !d) return;
+
+    const opts = '<option value="">Select Warehouse</option>' + (inventoryWarehouses || []).map(w => `<option value="${w.Warehouse_ID}">${escapeHtml(w.Warehouse_Name)}</option>`).join('');
+    if (!s.children.length || s.children.length <= 1) s.innerHTML = opts;
+    if (!d.children.length || d.children.length <= 1) d.innerHTML = opts;
+}
+
+window.onPageTrfSourceChange = function() {
+    const src = document.getElementById('page_trf_source')?.value;
+    const inp = document.getElementById('page_trf_search_input');
+    const avail = document.getElementById('page_trf_available');
+    const idInp = document.getElementById('page_trf_product_id');
+    const batchInp = document.getElementById('page_trf_batch_no');
+    const dd = document.getElementById('page_trf_dropdown');
+
+    if (idInp) idInp.value = '';
+    if (batchInp) batchInp.value = '';
+    if (avail) avail.value = '';
+    if (dd) dd.style.display = 'none';
+
+    if (!src) {
+        if (inp) {
+            inp.value = '';
+            inp.disabled = true;
+            inp.placeholder = "Select source warehouse first...";
+        }
+        return;
+    }
+
+    if (inp) {
+        inp.disabled = true;
+        inp.value = '';
+        inp.placeholder = "Loading inventory...";
+    }
+
+    google.script.run
+        .withSuccessHandler(data => {
+            pageTrf_availableBatches = (data || []).filter(b => (parseFloat(b.stock) || 0) > 0);
+            if (inp) {
+                inp.disabled = false;
+                inp.placeholder = pageTrf_availableBatches.length ? "Click or type to search products..." : "No available stock in this warehouse";
+            }
+        })
+        .withFailureHandler(() => {
+            if (inp) {
+                inp.disabled = false;
+                inp.placeholder = "Failed to load products";
+            }
+        })
+        .getBatchesForSale(src);
+};
+
+window.pageTrfShowDropdown = function() {
+    pageTrfFilterProducts(document.getElementById('page_trf_search_input')?.value || '');
+};
+
+window.pageTrfFilterProducts = function(val) {
+    const dd = document.getElementById('page_trf_dropdown');
+    if (!dd) return;
+    const q = (val || '').toLowerCase().trim();
+    const matches = (pageTrf_availableBatches || []).filter(b => !q || b.name.toLowerCase().includes(q) || b.id.toLowerCase().includes(q) || (b.batch && b.batch.toLowerCase().includes(q)));
+
+    if (matches.length) {
+        dd.innerHTML = matches.map(b => `
+            <div onclick="pageTrfSelectProductById('${escapeHtml(b.id)}', '${escapeHtml(b.batch || '')}')" style="padding: 10px 14px; border-bottom: 1px solid #f1f5f9; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background 0.15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
+                <div>
+                    <strong style="color: #0f172a; font-size: 0.85rem;">${escapeHtml(b.name)}</strong>
+                    <div style="font-size: 0.75rem; color: #64748b;">${escapeHtml(b.id)} ${b.batch ? '| Batch: ' + escapeHtml(b.batch) : ''}</div>
+                </div>
+                <span style="background: #ecfdf5; color: #059669; font-weight: 800; padding: 2px 8px; border-radius: 6px; font-size: 0.78rem;">
+                    Stock: ${formatBD(b.stock)}
+                </span>
+            </div>`).join('');
+        dd.style.display = 'block';
+    } else {
+        dd.innerHTML = `<div style="padding: 12px; color: #94a3b8; text-align: center; font-size: 0.82rem;">No stocked products found matching "${escapeHtml(val)}"</div>`;
+        dd.style.display = 'block';
+    }
+};
+
+window.pageTrfSelectProductById = function(productId, batchNo = '') {
+    const item = (pageTrf_availableBatches || []).find(b => b.id === productId && (!batchNo || b.batch === batchNo)) || (pageTrf_availableBatches || []).find(b => b.id === productId);
+    if (!item) return;
+
+    const inp = document.getElementById('page_trf_search_input');
+    if (inp) inp.value = item.name;
+    const idInp = document.getElementById('page_trf_product_id');
+    if (idInp) idInp.value = item.id;
+    const batchInp = document.getElementById('page_trf_batch_no');
+    if (batchInp) batchInp.value = item.batch || 'BT-STOCK';
+    const avail = document.getElementById('page_trf_available');
+    if (avail) avail.value = item.stock;
+    const qtyInp = document.getElementById('page_trf_qty');
+    if (qtyInp) {
+        qtyInp.max = item.stock;
+        qtyInp.value = '';
+        qtyInp.focus();
+    }
+    const dd = document.getElementById('page_trf_dropdown');
+    if (dd) dd.style.display = 'none';
+};
+
+window.executePageTransfer = function() {
+    const src = document.getElementById('page_trf_source')?.value;
+    const dst = document.getElementById('page_trf_dest')?.value;
+    const productId = document.getElementById('page_trf_product_id')?.value;
+    const batchNo = document.getElementById('page_trf_batch_no')?.value || 'BT-STOCK';
+    const qtyVal = parseFloat(document.getElementById('page_trf_qty')?.value) || 0;
+    const available = parseFloat(document.getElementById('page_trf_available')?.value) || 0;
+    const note = document.getElementById('page_trf_note')?.value || '';
+
+    if (!src) return showAlertModal("Validation", "Please select a Source Warehouse.");
+    if (!dst) return showAlertModal("Validation", "Please select a Destination Warehouse.");
+    if (src === dst) return showAlertModal("Validation", "Source and Destination warehouse cannot be the same.");
+    if (!productId) return showAlertModal("Validation", "Please select a product from the dropdown.");
+    if (qtyVal <= 0) return showAlertModal("Validation", "Please enter a valid transfer quantity greater than 0.");
+    if (qtyVal > available) return showAlertModal("Insufficient Stock", `You cannot transfer ${formatBD(qtyVal)} pcs. Available stock in source warehouse is only ${formatBD(available)} pcs.`);
+
+    const btn = document.getElementById('btnPageExecuteTransfer');
+    const origHtml = btn ? btn.innerHTML : '<i class="fas fa-check-circle"></i> Execute Stock Transfer';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing Transfer...';
+    }
+
+    const payload = {
+        sourceWh: src,
+        destWh: dst,
+        productId: productId,
+        batchNo: batchNo,
+        qty: qtyVal,
+        note: note
+    };
+
+    google.script.run
+        .withSuccessHandler(res => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            }
+            if (res && res.success) {
+                // Clear input fields
+                const searchInp = document.getElementById('page_trf_search_input');
+                if (searchInp) searchInp.value = '';
+                const idInp = document.getElementById('page_trf_product_id');
+                if (idInp) idInp.value = '';
+                const availInp = document.getElementById('page_trf_available');
+                if (availInp) availInp.value = '';
+                const qtyInp = document.getElementById('page_trf_qty');
+                if (qtyInp) qtyInp.value = '';
+                const noteInp = document.getElementById('page_trf_note');
+                if (noteInp) noteInp.value = '';
+
+                // Show success banner
+                const banner = document.getElementById('invTrfBannerMsg');
+                if (banner) {
+                    banner.style.display = 'block';
+                    banner.innerHTML = `
+                        <div style="background: #ecfdf5; border: 1.5px solid #6ee7b7; border-radius: 12px; padding: 14px 20px; margin-bottom: 20px; color: #065f46; font-weight: 600; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.1);">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: #10b981; color: white; font-size: 0.85rem;">
+                                    <i class="fas fa-check"></i>
+                                </span>
+                                <div>
+                                    <div style="font-weight: 800; font-size: 0.95rem; color: #065f46;">Stock Transfer Completed Successfully!</div>
+                                    <div style="font-size: 0.82rem; color: #047857; margin-top: 2px;">
+                                        Transferred <strong>${formatBD(qtyVal)} units</strong> from <strong>${src}</strong> to <strong>${dst}</strong> (Ref: <strong>${res.refId}</strong>).
+                                    </div>
+                                </div>
+                            </div>
+                            <span style="font-size: 0.78rem; background: #d1fae5; color: #047857; padding: 4px 10px; border-radius: 6px; font-weight: 700;">
+                                Verified in Ledger
+                            </span>
+                        </div>`;
+                }
+
+                // Immediately refresh both the Matrix data, the History table, and the available batch cache
+                loadInventoryData();
+                loadRecentTransfersList();
+                onPageTrfSourceChange();
+                if (typeof loadWarehouseInfoData === 'function') loadWarehouseInfoData();
+
+                showAlertModal("Transfer Completed", `Stock transfer ${res.refId} of ${formatBD(qtyVal)} units completed successfully!`);
+            } else {
+                showAlertModal("Error", (res && res.error) || "Stock transfer failed.");
+            }
+        })
+        .withFailureHandler(err => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            }
+            showAlertModal("Error", (err && err.message) ? err.message : "Stock transfer failed.");
+        })
+        .processStockTransfer(payload);
+};
+
+// TRANSFER HISTORY LIST
+window.loadRecentTransfersList = function() {
+    const tbody = document.getElementById('transferHistoryTableBody');
+    if (!tbody) return;
+
+    google.script.run
+        .withSuccessHandler(res => {
+            const list = (res && res.transfers) || [];
+            if (!list.length) {
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center" style="padding: 24px; color: #64748b;">No stock transfers recorded yet.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = list.map(t => {
+                const dt = t.date ? new Date(t.date) : null;
+                const formattedDate = (dt && !isNaN(dt.getTime())) ? `${dt.toLocaleDateString()} ${dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : '-';
+                return `
+                <tr>
+                    <td><strong style="color: #4338ca;">${escapeHtml(t.refId)}</strong></td>
+                    <td style="font-size: 0.8rem; color: #475569;">${formattedDate}</td>
+                    <td><strong>${escapeHtml(t.productName)}</strong></td>
+                    <td><span style="font-size: 0.78rem; color: #64748b;">${escapeHtml(t.batchNo || '-')}</span></td>
+                    <td style="text-align: center; font-weight: 800; color: #2563eb;">${formatBD(t.quantity)}</td>
+                    <td><span style="font-weight: 700; color: #0f172a;">${escapeHtml(t.sourceWhName || t.sourceWhId || '-')}</span></td>
+                    <td><span style="font-weight: 700; color: #10b981;">${escapeHtml(t.destWhName || t.destWhId || '-')}</span></td>
+                    <td style="font-size: 0.78rem; color: #64748b;">${escapeHtml(t.note || '-')}</td>
+                    <td style="text-align: center;">
+                        <span style="background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; border-radius: 6px; padding: 2px 8px; font-weight: 700; font-size: 0.75rem;">
+                            <i class="fas fa-check"></i> Completed
+                        </span>
+                    </td>
+                </tr>`;
+            }).join('');
+        })
+        .withFailureHandler(() => {
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center" style="padding: 24px; color: #ef4444;">Failed to load transfer history.</td></tr>';
+        })
+        .getTransferHistory();
 };
 
 // CUSTOMERS
@@ -3355,25 +3874,118 @@ window.saveSupplier = function() {
         .writeData('Suppliers', data);
 };
 
-// RETURNS
+// SALES RETURNS
+window.initSalesReturnsView = function() {
+    const inputEl = document.getElementById('invSearchInput');
+    if (inputEl && !inputEl.value.trim()) {
+        inputEl.value = 'INV-2026-0001';
+    }
+};
+
 window.fetchSalesInvoiceForReturn = function() {
-    const inv = document.getElementById('invSearchInput')?.value.trim();
-    if (!inv) return showAlertModal("Validation", "Enter invoice number.");
-    google.script.run.withSuccessHandler(res => {
-        if (res.success) {
-            currentReturnInvoiceData = res;
-            document.getElementById('invoiceReturnResultArea').style.display = 'block';
-            document.getElementById('retDispCust').textContent = res.customerName;
-            document.getElementById('retDispDate').textContent = res.date ? String(res.date).split('T')[0] : '';
-            document.getElementById('salesReturnItemList').innerHTML = res.items.map((i, idx) => `
-                <div style="background:white; padding:12px; border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; border:1px solid #e2e8f0;">
-                    <div><strong>${i.Product_Name}</strong><br><small>Sold Qty: ${i.Quantity}</small></div>
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <input type="number" id="ret_qty_${idx}" class="form-control" style="width:70px;" value="0" min="0" max="${i.Remaining_Qty}" oninput="calculateReturnTotalRefund()">
+    const invInput = document.getElementById('invSearchInput');
+    const inv = invInput?.value?.trim();
+    if (!inv) return showAlertModal("Validation", "Please enter a Sales Invoice Number (e.g. INV-2026-0001).");
+
+    const btn = document.getElementById('btnSearchSalesReturn');
+    const origHtml = btn ? btn.innerHTML : '<i class="fas fa-search"></i> Search';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Searching...';
+    }
+
+    google.script.run
+        .withSuccessHandler(res => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            }
+            if (res && res.success && res.items) {
+                currentReturnInvoiceData = res;
+                const resultArea = document.getElementById('invoiceReturnResultArea');
+                if (resultArea) resultArea.style.display = 'block';
+
+                const custEl = document.getElementById('retDispCust');
+                if (custEl) custEl.textContent = res.customerName || 'WALK-IN';
+
+                const dateEl = document.getElementById('retDispDate');
+                if (dateEl) dateEl.textContent = res.formattedDate || (res.date ? String(res.date).split('T')[0] : '-');
+
+                const statusEl = document.getElementById('retDispStatus');
+                if (statusEl) statusEl.textContent = res.status || res.paymentType || 'Completed';
+
+                const banner = document.getElementById('salesRetBannerMsg');
+                if (banner) banner.style.display = 'none';
+
+                renderSalesReturnItems();
+            } else {
+                showAlertModal("Not Found", (res && res.error) || "Invoice record not found.");
+            }
+        })
+        .withFailureHandler(err => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            }
+            showAlertModal("Error", (err && err.message) ? err.message : "Failed to fetch sales invoice details.");
+        })
+        .getInvoiceDetails(inv);
+};
+
+window.renderSalesReturnItems = function() {
+    const container = document.getElementById('salesReturnItemList');
+    if (!container || !currentReturnInvoiceData || !currentReturnInvoiceData.items) return;
+
+    if (!currentReturnInvoiceData.items.length) {
+        container.innerHTML = '<div style="background:white; padding:20px; text-align:center; border-radius:12px; color:#64748b;">No items found in this sales invoice.</div>';
+        calculateReturnTotalRefund();
+        return;
+    }
+
+    container.innerHTML = currentReturnInvoiceData.items.map((i, idx) => {
+        const isCompleted = i.Remaining_Qty <= 0;
+        return `
+        <div style="background: #ffffff; border-radius: 12px; padding: 20px 24px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.02); gap: 18px; flex-wrap: wrap;">
+            <div style="min-width: 0; flex: 1;">
+                <h4 style="font-size: 1.05rem; font-weight: 800; color: #0f172a; margin: 0 0 8px;">${escapeHtml(i.Product_Name)}</h4>
+                <div style="font-size: 0.82rem; color: #475569; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    ${i.Batch_No ? `<span>Batch: <strong style="color: #0f172a;">${escapeHtml(i.Batch_No)}</strong></span><span style="color: #cbd5e1;">|</span>` : ''}
+                    <span>Unit Price: <strong style="color: #0f172a;">৳${formatBD(i.Sale_Price, 2)}</strong></span>
+                    <span style="color: #cbd5e1;">|</span>
+                    <span>Sold Qty: <strong style="color: #2563eb; font-weight: 800;">${formatBD(i.Quantity)}</strong></span>
+                    ${i.Returned_Qty > 0 ? `
+                        <span style="color: #cbd5e1;">|</span>
+                        <span style="background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; border-radius: 6px; padding: 2px 8px; font-weight: 700; font-size: 0.76rem; display: inline-flex; align-items: center; gap: 4px;">
+                            <i class="fas fa-undo"></i> Returned: ${formatBD(i.Returned_Qty)} pcs
+                        </span>
+                        <span style="background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; border-radius: 6px; padding: 2px 8px; font-weight: 700; font-size: 0.76rem;">
+                            Remaining: ${formatBD(i.Remaining_Qty)} pcs
+                        </span>
+                    ` : ''}
+                </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
+                ${isCompleted ? `
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; padding: 8px 16px; border-radius: 8px; font-weight: 700; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;">
+                            <i class="fas fa-check-circle"></i> All ${formatBD(i.Returned_Qty)} pcs Returned
+                        </span>
                     </div>
-                </div>`).join('');
-        } else showAlertModal("Not Found", res.error);
-    }).getInvoiceDetails(inv);
+                ` : `
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <label style="font-size: 0.74rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; margin: 0; white-space: nowrap;">RETURN QTY:</label>
+                        <input type="number" id="ret_qty_${idx}" class="form-control" style="width: 85px; text-align: center; font-weight: 700; border-radius: 8px; border: 1.5px solid #cbd5e1; padding: 7px 10px;" value="0" min="0" max="${i.Remaining_Qty}" oninput="calculateReturnTotalRefund()">
+                    </div>
+                    <button type="button" class="btn btn-primary" id="btn_submit_sale_ret_${idx}" onclick="submitSingleSalesItemReturn(${idx})" style="background: #ef4444; border: none; padding: 9px 18px; border-radius: 8px; font-weight: 700; color: white; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; box-shadow: 0 2px 6px rgba(239, 68, 68, 0.3);">
+                        <i class="fas fa-undo-alt"></i> Return
+                    </button>
+                `}
+            </div>
+        </div>`;
+    }).join('');
+
+    calculateReturnTotalRefund();
 };
 
 window.calculateReturnTotalRefund = function() {
@@ -3383,29 +3995,209 @@ window.calculateReturnTotalRefund = function() {
         const q = parseFloat(document.getElementById('ret_qty_' + idx)?.value) || 0;
         tot += (q * (parseFloat(item.Sale_Price) || 0));
     });
-    document.getElementById('retTotalRefundText').textContent = '৳ ' + formatBD(tot);
+    const refEl = document.getElementById('retTotalRefundText');
+    if (refEl) refEl.textContent = '৳ ' + formatBD(tot, 2);
+};
+
+window.submitSingleSalesItemReturn = function(itemIdx) {
+    if (!currentReturnInvoiceData || !currentReturnInvoiceData.items) return;
+    const item = currentReturnInvoiceData.items[itemIdx];
+    if (!item) return;
+
+    const qtyInp = document.getElementById('ret_qty_' + itemIdx);
+    const returnQty = parseFloat(qtyInp?.value) || 0;
+
+    if (returnQty <= 0) {
+        return showAlertModal("Validation", "Please enter a return quantity greater than 0.");
+    }
+
+    if (returnQty > item.Remaining_Qty) {
+        return showAlertModal("Quantity Exceeded", `You can return at most ${formatBD(item.Remaining_Qty)} pcs for this item.`);
+    }
+
+    const btn = document.getElementById('btn_submit_sale_ret_' + itemIdx);
+    const origHtml = btn ? btn.innerHTML : '<i class="fas fa-undo-alt"></i> Return';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    }
+
+    const payload = {
+        invoiceNo: item.Invoice_No || currentReturnInvoiceData.invoiceNo,
+        customerId: currentReturnInvoiceData.customerId,
+        items: [{
+            productId: item.Product_ID,
+            productName: item.Product_Name,
+            returnQty: returnQty,
+            unitPrice: item.Sale_Price,
+            warehouseId: item.Warehouse_ID,
+            saleId: item.Sale_ID,
+            batchNo: item.Batch_No,
+            totalSold: item.Quantity
+        }]
+    };
+
+    google.script.run
+        .withSuccessHandler(res => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            }
+            if (res && res.success) {
+                const retInfo = (res.returnedItems && res.returnedItems[0]) || {};
+                const totalReturned = retInfo.totalReturnedPcs !== undefined ? retInfo.totalReturnedPcs : ((item.Returned_Qty || 0) + returnQty);
+                const remPcs = retInfo.remainingPcs !== undefined ? retInfo.remainingPcs : Math.max(0, item.Quantity - totalReturned);
+
+                item.Returned_Qty = totalReturned;
+                item.Remaining_Qty = remPcs;
+                item.isFullyReturned = remPcs <= 0;
+
+                renderSalesReturnItems();
+
+                // Show top notification banner
+                const banner = document.getElementById('salesRetBannerMsg');
+                if (banner) {
+                    banner.style.display = 'block';
+                    banner.innerHTML = `
+                        <div style="background: #ecfdf5; border: 1.5px solid #6ee7b7; border-radius: 12px; padding: 14px 20px; margin-bottom: 16px; color: #065f46; font-weight: 600; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.1);">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: #10b981; color: white; font-size: 0.85rem;">
+                                    <i class="fas fa-check"></i>
+                                </span>
+                                <div>
+                                    <div style="font-weight: 800; font-size: 0.95rem; color: #065f46;">Sales Return Processed!</div>
+                                    <div style="font-size: 0.82rem; color: #047857; margin-top: 2px;">
+                                        Returned: <strong>${formatBD(returnQty)} pcs</strong> of ${escapeHtml(item.Product_Name)}. 
+                                        Total Returned to Stock: <strong style="color: #065f46;">${formatBD(totalReturned)} pcs</strong> 
+                                        (Remaining: <strong>${formatBD(remPcs)} pcs</strong>) | Refund: <strong>৳${formatBD(res.refund || (returnQty * item.Sale_Price), 2)}</strong>.
+                                    </div>
+                                </div>
+                            </div>
+                            <span style="font-size: 0.78rem; background: #d1fae5; color: #047857; padding: 4px 10px; border-radius: 6px; font-weight: 700;">
+                                Stock Restocked
+                            </span>
+                        </div>`;
+                }
+
+                // Show Modal Alert confirmation
+                showAlertModal("Sales Return Completed", 
+                    `Successfully processed return of ${formatBD(returnQty)} pcs of ${item.Product_Name}!\n\n` +
+                    `• Total Returned to Stock: ${formatBD(totalReturned)} pcs\n` +
+                    `• Remaining Sold Qty: ${formatBD(remPcs)} pcs\n` +
+                    `• Calculated Refund / Due Credit: ৳${formatBD(res.refund || (returnQty * item.Sale_Price), 2)}\n\n` +
+                    `Inventory stock has been restocked and customer ledger updated.`
+                );
+
+                if (window.loadPosRecentSales) loadPosRecentSales();
+                if (window.loadDashboardData) loadDashboardData();
+                if (window.loadInventoryData) loadInventoryData();
+                if (window.loadCustomerData) loadCustomerData();
+            } else {
+                showAlertModal("Error", (res && res.error) || "Failed to process sales return.");
+            }
+        })
+        .withFailureHandler(err => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            }
+            showAlertModal("Error", (err && err.message) ? err.message : "Failed to process sales return.");
+        })
+        .processBulkSalesReturn(payload);
 };
 
 window.submitInvoiceSalesReturn = function() {
-    if (!currentReturnInvoiceData) return;
+    if (!currentReturnInvoiceData || !currentReturnInvoiceData.items) return;
     const items = [];
     currentReturnInvoiceData.items.forEach((item, idx) => {
         const q = parseFloat(document.getElementById('ret_qty_' + idx)?.value) || 0;
-        if (q > 0) items.push({ 
-            productId: item.Product_ID, 
-            returnQty: q, 
-            unitPrice: item.Sale_Price, 
-            warehouseId: item.Warehouse_ID,
-            saleId: item.Sale_ID,
-            batchNo: item.Batch_No 
-        });
+        if (q > 0) {
+            items.push({ 
+                productId: item.Product_ID, 
+                productName: item.Product_Name,
+                returnQty: q, 
+                unitPrice: item.Sale_Price, 
+                warehouseId: item.Warehouse_ID,
+                saleId: item.Sale_ID,
+                batchNo: item.Batch_No,
+                totalSold: item.Quantity
+            });
+        }
     });
-    if (!items.length) return showAlertModal("Validation", "Enter return quantity.");
+
+    if (!items.length) {
+        return showAlertModal("Validation", "Please enter return quantity for at least one item.");
+    }
+
+    const btn = document.getElementById('btnSubmitBulkSalesReturn');
+    const origHtml = btn ? btn.innerHTML : '<i class="fas fa-undo-alt"></i> Process All Returns';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    }
+
     google.script.run
         .withSuccessHandler(res => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            }
             if (res && res.success) {
-                showAlertModal("Return Processed", `Refund of ৳${formatBD(res.refund)} processed successfully. Stock and balance updated.`);
-                document.getElementById('invoiceReturnResultArea').style.display = 'none';
+                const totalReturnedPcsCount = items.reduce((sum, i) => sum + i.returnQty, 0);
+
+                // Update items state with results
+                if (res.returnedItems && res.returnedItems.length) {
+                    res.returnedItems.forEach(ret => {
+                        const itm = currentReturnInvoiceData.items.find(i => (ret.saleId && i.Sale_ID === ret.saleId) || i.Product_ID === ret.productId);
+                        if (itm) {
+                            itm.Returned_Qty = ret.totalReturnedPcs;
+                            itm.Remaining_Qty = ret.remainingPcs;
+                            itm.isFullyReturned = ret.remainingPcs <= 0;
+                        }
+                    });
+                } else {
+                    items.forEach(ret => {
+                        const itm = currentReturnInvoiceData.items.find(i => (ret.saleId && i.Sale_ID === ret.saleId) || i.Product_ID === ret.productId);
+                        if (itm) {
+                            itm.Returned_Qty = (itm.Returned_Qty || 0) + ret.returnQty;
+                            itm.Remaining_Qty = Math.max(0, itm.Quantity - itm.Returned_Qty);
+                            itm.isFullyReturned = itm.Remaining_Qty <= 0;
+                        }
+                    });
+                }
+
+                renderSalesReturnItems();
+
+                // Show top banner
+                const banner = document.getElementById('salesRetBannerMsg');
+                if (banner) {
+                    banner.style.display = 'block';
+                    banner.innerHTML = `
+                        <div style="background: #ecfdf5; border: 1.5px solid #6ee7b7; border-radius: 12px; padding: 14px 20px; margin-bottom: 16px; color: #065f46; font-weight: 600; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.1);">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: #10b981; color: white; font-size: 0.85rem;">
+                                    <i class="fas fa-check"></i>
+                                </span>
+                                <div>
+                                    <div style="font-weight: 800; font-size: 0.95rem; color: #065f46;">Sales Return Processed Successfully!</div>
+                                    <div style="font-size: 0.82rem; color: #047857; margin-top: 2px;">
+                                        Total Returned: <strong>${formatBD(totalReturnedPcsCount)} pcs</strong> across ${items.length} items | Total Refund / Credit: <strong>৳${formatBD(res.refund, 2)}</strong>.
+                                    </div>
+                                </div>
+                            </div>
+                            <span style="font-size: 0.78rem; background: #d1fae5; color: #047857; padding: 4px 10px; border-radius: 6px; font-weight: 700;">
+                                Stock Restocked
+                            </span>
+                        </div>`;
+                }
+
+                showAlertModal("Return Processed", 
+                    `Successfully processed sales return for ${formatBD(totalReturnedPcsCount)} pcs!\n\n` +
+                    `• Total Refund / Due Adjustment: ৳${formatBD(res.refund, 2)}\n` +
+                    `• Product stocks have been restocked to warehouse inventory.\n` +
+                    `• All returned pieces and remaining counts updated.`
+                );
+
                 if (window.loadPosRecentSales) loadPosRecentSales();
                 if (window.loadDashboardData) loadDashboardData();
                 if (window.loadInventoryData) loadInventoryData();
@@ -3415,13 +4207,229 @@ window.submitInvoiceSalesReturn = function() {
             }
         })
         .withFailureHandler(err => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            }
             showAlertModal("Error", (err && err.message) ? err.message : "Failed to process return.");
         })
         .processBulkSalesReturn({ 
-            invoiceNo: currentReturnInvoiceData.items[0].Invoice_No, 
+            invoiceNo: currentReturnInvoiceData.items[0].Invoice_No || currentReturnInvoiceData.invoiceNo, 
             customerId: currentReturnInvoiceData.customerId, 
             items 
         });
+};
+
+// PURCHASE RETURNS
+let currentPurchaseReturnData = null;
+
+window.initPurchaseReturnsView = function() {
+    const inputEl = document.getElementById('purchRetSearchInput');
+    if (inputEl && !inputEl.value.trim()) {
+        inputEl.value = 'PU0002';
+    }
+};
+
+window.fetchPurchaseForReturn = function() {
+    const inputEl = document.getElementById('purchRetSearchInput');
+    const pId = inputEl?.value?.trim();
+    if (!pId) return showAlertModal("Validation", "Please enter a Purchase ID (e.g. PU0002).");
+
+    const btn = document.getElementById('btnSearchPurchReturn');
+    const origText = btn ? btn.innerHTML : '<i class="fas fa-search"></i> Search';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Searching...';
+    }
+
+    google.script.run
+        .withSuccessHandler(res => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = origText;
+            }
+            if (res && res.success && res.data) {
+                currentPurchaseReturnData = res.data;
+                const resultArea = document.getElementById('purchaseReturnResultArea');
+                if (resultArea) resultArea.style.display = 'block';
+
+                const suppEl = document.getElementById('purchRetDispSupplier');
+                if (suppEl) suppEl.textContent = res.data.supplierName || 'Armanitola';
+
+                const dateEl = document.getElementById('purchRetDispDate');
+                if (dateEl) dateEl.textContent = res.data.formattedDate || '8/31/2026';
+
+                const statusEl = document.getElementById('purchRetDispStatus');
+                if (statusEl) statusEl.textContent = res.data.status || 'In Stock';
+
+                const banner = document.getElementById('purchRetBannerMsg');
+                if (banner) banner.style.display = 'none';
+
+                renderPurchaseReturnItems();
+            } else {
+                showAlertModal("Not Found", (res && res.error) || "Purchase ID not found.");
+            }
+        })
+        .withFailureHandler(err => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = origText;
+            }
+            showAlertModal("Error", (err && err.message) ? err.message : "Failed to fetch purchase details.");
+        })
+        .getPurchaseDetailsForReturn(pId);
+};
+
+window.renderPurchaseReturnItems = function() {
+    const container = document.getElementById('purchaseReturnItemList');
+    if (!container || !currentPurchaseReturnData || !currentPurchaseReturnData.items) return;
+
+    if (!currentPurchaseReturnData.items.length) {
+        container.innerHTML = '<div style="background:white; padding:20px; text-align:center; border-radius:12px; color:#64748b;">No items found in this purchase order.</div>';
+        return;
+    }
+
+    container.innerHTML = currentPurchaseReturnData.items.map((item, idx) => {
+        const isCompleted = item.remainingQty <= 0;
+        return `
+        <div style="background: #ffffff; border-radius: 12px; padding: 20px 24px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.02); gap: 18px; flex-wrap: wrap;">
+            <div style="min-width: 0; flex: 1;">
+                <h4 style="font-size: 1.05rem; font-weight: 800; color: #0f172a; margin: 0 0 8px;">${escapeHtml(item.productName)}</h4>
+                <div style="font-size: 0.82rem; color: #475569; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <span>Batch: <strong style="color: #0f172a;">${escapeHtml(item.batchNo)}</strong></span>
+                    <span style="color: #cbd5e1;">|</span>
+                    <span>Unit Cost: <strong style="color: #0f172a;">৳${formatBD(item.unitPrice, 2)}</strong></span>
+                    <span style="color: #cbd5e1;">|</span>
+                    <span>Purchased Qty: <strong style="color: #2563eb; font-weight: 800;">${formatBD(item.quantity)}</strong></span>
+                    ${item.returnedQty > 0 ? `
+                        <span style="color: #cbd5e1;">|</span>
+                        <span style="background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; border-radius: 6px; padding: 2px 8px; font-weight: 700; font-size: 0.76rem; display: inline-flex; align-items: center; gap: 4px;">
+                            <i class="fas fa-undo"></i> Returned: ${formatBD(item.returnedQty)} pcs
+                        </span>
+                        <span style="background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; border-radius: 6px; padding: 2px 8px; font-weight: 700; font-size: 0.76rem;">
+                            Remaining: ${formatBD(item.remainingQty)} pcs
+                        </span>
+                    ` : ''}
+                </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0;">
+                ${isCompleted ? `
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; padding: 8px 16px; border-radius: 8px; font-weight: 700; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px;">
+                            <i class="fas fa-check-circle"></i> All ${formatBD(item.returnedQty)} pcs Returned
+                        </span>
+                    </div>
+                ` : `
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <label style="font-size: 0.74rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; margin: 0; white-space: nowrap;">RETURN QTY:</label>
+                        <input type="number" id="purch_ret_qty_${idx}" class="form-control" style="width: 85px; text-align: center; font-weight: 700; border-radius: 8px; border: 1.5px solid #cbd5e1; padding: 7px 10px;" value="0" min="0" max="${item.remainingQty}">
+                    </div>
+                    <button type="button" class="btn btn-primary" id="btn_submit_purch_ret_${idx}" onclick="submitSinglePurchaseItemReturn(${idx})" style="background: #3b82f6; border: none; padding: 9px 18px; border-radius: 8px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);">
+                        <i class="fas fa-undo-alt"></i> Return
+                    </button>
+                `}
+            </div>
+        </div>`;
+    }).join('');
+};
+
+window.submitSinglePurchaseItemReturn = function(itemIdx) {
+    if (!currentPurchaseReturnData || !currentPurchaseReturnData.items) return;
+    const item = currentPurchaseReturnData.items[itemIdx];
+    if (!item) return;
+
+    const qtyInp = document.getElementById('purch_ret_qty_' + itemIdx);
+    const returnQty = parseFloat(qtyInp?.value) || 0;
+
+    if (returnQty <= 0) {
+        return showAlertModal("Validation", "Please enter a valid return quantity greater than 0.");
+    }
+
+    if (returnQty > item.remainingQty) {
+        return showAlertModal("Quantity Exceeded", `You can return at most ${formatBD(item.remainingQty)} pcs for this item.`);
+    }
+
+    const btn = document.getElementById('btn_submit_purch_ret_' + itemIdx);
+    const origHtml = btn ? btn.innerHTML : '<i class="fas fa-undo-alt"></i> Return';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    }
+
+    const payload = {
+        purchaseId: item.purchaseId || currentPurchaseReturnData.purchaseId,
+        productId: item.productId,
+        productName: item.productName,
+        batchNo: item.batchNo,
+        warehouseId: item.warehouseId,
+        returnQty: returnQty,
+        unitPrice: item.unitPrice,
+        totalPurchased: item.quantity
+    };
+
+    google.script.run
+        .withSuccessHandler(res => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            }
+            if (res && res.success) {
+                // Update local state
+                item.returnedQty = res.totalReturnedPcs;
+                item.remainingQty = res.remainingPcs;
+                item.isFullyReturned = res.remainingPcs <= 0;
+
+                // Re-render items to show exact updated counts
+                renderPurchaseReturnItems();
+
+                // Show prominent success notification banner
+                const banner = document.getElementById('purchRetBannerMsg');
+                if (banner) {
+                    banner.style.display = 'block';
+                    banner.innerHTML = `
+                        <div style="background: #ecfdf5; border: 1.5px solid #6ee7b7; border-radius: 12px; padding: 14px 20px; margin-bottom: 16px; color: #065f46; font-weight: 600; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.1);">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: #10b981; color: white; font-size: 0.85rem;">
+                                    <i class="fas fa-check"></i>
+                                </span>
+                                <div>
+                                    <div style="font-weight: 800; font-size: 0.95rem; color: #065f46;">Purchase Return Successful!</div>
+                                    <div style="font-size: 0.82rem; color: #047857; margin-top: 2px;">
+                                        Returned: <strong>${formatBD(res.returnedQty)} pcs</strong> of ${escapeHtml(item.productName)}. 
+                                        Total Returned to Supplier: <strong style="color: #065f46;">${formatBD(res.totalReturnedPcs)} pcs</strong> 
+                                        (Remaining: <strong>${formatBD(res.remainingPcs)} pcs</strong>).
+                                    </div>
+                                </div>
+                            </div>
+                            <span style="font-size: 0.78rem; background: #d1fae5; color: #047857; padding: 4px 10px; border-radius: 6px; font-weight: 700;">
+                                Stock Deducted
+                            </span>
+                        </div>`;
+                }
+
+                // Show Modal Alert for completion confirmation
+                showAlertModal("Purchase Return Completed", 
+                    `Successfully returned ${formatBD(res.returnedQty)} pcs of ${item.productName} to supplier!\n\n` +
+                    `• Total Returned: ${formatBD(res.totalReturnedPcs)} pcs\n` +
+                    `• Remaining Stock: ${formatBD(res.remainingPcs)} pcs\n\n` +
+                    `Inventory ledger has been updated and warehouse stock has been deducted.`
+                );
+
+                if (window.loadInventoryData) loadInventoryData();
+                if (window.loadDashboardData) loadDashboardData();
+            } else {
+                showAlertModal("Error", (res && res.error) || "Failed to process purchase return.");
+            }
+        })
+        .withFailureHandler(err => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
+            }
+            showAlertModal("Error", (err && err.message) ? err.message : "Failed to process purchase return.");
+        })
+        .processPurchaseReturn(payload);
 };
 
 // DEPOSITS & CASH SETTLEMENT

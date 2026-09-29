@@ -257,13 +257,16 @@ const demoStore = {
     { product_id: 'P0002', warehouse_id: 'W001', warehouse_name: 'MouloviBazar', stock: 60, ctn: 5, batch_no: 'BT-DET-01' }
   ],
   transactions_sales: [
-    { invoice_no: 'INV-2026-0013', memo_no: '4302', date: '2026-09-21T10:00:00Z', customer_id: 'CST0001', customer_name: 'Hamidul Store-MEL', return_amt: 0, net_total: 1920000, payment_type: 'Credit', status: 'Completed' },
-    { invoice_no: 'INV-2026-0011', memo_no: '4229', date: '2026-09-03T10:00:00Z', customer_id: 'CST0002', customer_name: 'Masud Store-HBL', return_amt: 0, net_total: 432300, payment_type: 'Credit', status: 'Completed' },
-    { invoice_no: 'INV-2026-0009', memo_no: '4230', date: '2026-09-02T10:00:00Z', customer_id: 'CST0003', customer_name: 'Hamidul Store-HBL', return_amt: 0, net_total: 864600, payment_type: 'Credit', status: 'Completed' },
-    { invoice_no: 'INV-2026-0008', memo_no: '4401', date: '2026-09-02T10:00:00Z', customer_id: 'CST0004', customer_name: 'S.B.Traders-MEL', return_amt: 0, net_total: 45173, payment_type: 'Credit', status: 'Completed' },
-    { invoice_no: 'INV-2026-0006', memo_no: '4301', date: '2026-09-15T10:00:00Z', customer_id: 'CST0001', customer_name: 'Hamidul Store-MEL', return_amt: 0, net_total: 3840000, payment_type: 'Credit', status: 'Completed' }
+    { sale_id: 'SA-0001-1', invoice_no: 'INV-2026-0001', memo_no: '4001', date: '2026-09-01T10:00:00Z', customer_id: 'CST0001', customer_name: 'Hamidul Store-MEL', product_id: 'P0001', product_name: 'Super Vasmol 33 Kesh Kala 100ml', batch_no: 'BT-20260917-2466', quantity: 240, sale_price: 80, gross_total: 19200, discount: 0, net_total: 19200, return_amt: 0, payment_type: 'Credit', status: 'Completed', warehouse_id: 'W001' },
+    { sale_id: 'SA-4302-1', invoice_no: 'INV-2026-0013', memo_no: '4302', date: '2026-09-21T10:00:00Z', customer_id: 'CST0001', customer_name: 'Hamidul Store-MEL', product_id: 'P0010', product_name: 'Amba Olive oil 150gm tin (80) 550/-', batch_no: 'BT-20260830-001', quantity: 4000, sale_price: 480, gross_total: 1920000, discount: 0, net_total: 1920000, return_amt: 0, payment_type: 'Credit', status: 'Completed', warehouse_id: 'W001' },
+    { sale_id: 'SA-4229-1', invoice_no: 'INV-2026-0011', memo_no: '4229', date: '2026-09-03T10:00:00Z', customer_id: 'CST0002', customer_name: 'Masud Store-HBL', product_id: 'P0011', product_name: 'Lucy Olive Oil 150gm tin (80) 515/-', batch_no: 'BT-20260830-001', quantity: 1000, sale_price: 432.3, gross_total: 432300, discount: 0, net_total: 432300, payment_type: 'Credit', status: 'Completed', warehouse_id: 'W001' },
+    { sale_id: 'SA-4230-1', invoice_no: 'INV-2026-0009', memo_no: '4230', date: '2026-09-02T10:00:00Z', customer_id: 'CST0003', customer_name: 'Hamidul Store-HBL', product_id: 'P0012', product_name: 'Amba Coconut oil 200ml (60) 230/-', batch_no: 'BT-20260830-001', quantity: 4500, sale_price: 192.13, gross_total: 864600, discount: 0, net_total: 864600, payment_type: 'Credit', status: 'Completed', warehouse_id: 'W001' },
+    { sale_id: 'SA-4401-1', invoice_no: 'INV-2026-0008', memo_no: '4401', date: '2026-09-02T10:00:00Z', customer_id: 'CST0004', customer_name: 'S.B.Traders-MEL', product_id: 'P0014', product_name: 'Lucy Coconut oil 200ml (60) 230/-', batch_no: 'BT-20260830-001', quantity: 110, sale_price: 410.66, gross_total: 45173, discount: 0, net_total: 45173, payment_type: 'Credit', status: 'Completed', warehouse_id: 'W001' },
+    { sale_id: 'SA-4301-1', invoice_no: 'INV-2026-0006', memo_no: '4301', date: '2026-09-15T10:00:00Z', customer_id: 'CST0001', customer_name: 'Hamidul Store-MEL', product_id: 'P0013', product_name: 'Ruchi Mustard oil 500ml pet (30) 265/-', batch_no: 'BT-20260830-001', quantity: 16000, sale_price: 240, gross_total: 3840000, discount: 0, net_total: 3840000, payment_type: 'Credit', status: 'Completed', warehouse_id: 'W001' }
   ],
   transactions_purchase: [
+    { purchase_id: 'PU0002', date: '2026-08-31T10:00:00Z', supplier_id: 'S0001', supplier_name: 'Armanitola', warehouse_id: 'W004', product_id: 'P0001', product_name: 'Super Vasmol -33 100ml 130/-', batch_no: 'BT-20260917-2466', expiry_date: '2028-12-31', sale_price: 110, mrp_price: 130, cost_price: 95.24, unit_price: 95.24, quantity: 67200, status: 'In Stock' },
+    { purchase_id: 'PU0001', date: '2026-08-30T10:00:00Z', supplier_id: 'S0002', supplier_name: 'Square Consumer', warehouse_id: 'W001', product_id: 'P0010', product_name: 'Amba Olive oil 150gm tin (80) 550/-', batch_no: 'BT-20260830-001', expiry_date: '2028-12-31', sale_price: 458.33, mrp_price: 550, cost_price: 380, unit_price: 380, quantity: 2720, status: 'In Stock' },
     { purchase_id: 'PO-2026-01', batch_no: 'BT-20260830-001', product_id: 'P0010', warehouse_id: 'W001', expiry_date: '2028-12-31', sale_price: 458.33, mrp_price: 550, cost_price: 380, quantity: 2720 },
     { purchase_id: 'PO-2026-02', batch_no: 'BT-20260830-001', product_id: 'P0011', warehouse_id: 'W001', expiry_date: '2028-12-31', sale_price: 429, mrp_price: 515, cost_price: 360, quantity: 2480 },
     { purchase_id: 'PO-2026-03', batch_no: 'BT-20260830-001', product_id: 'P0012', warehouse_id: 'W001', expiry_date: '2028-12-31', sale_price: 191, mrp_price: 230, cost_price: 155, quantity: 12632 },
@@ -1118,7 +1121,8 @@ export const BackendService = {
       const hasItem = Object.values(batchStock).some(b => b.id === pId && (!warehouseId || warehouseId === 'ALL' || b.warehouseId === String(warehouseId).trim()));
       
       if (!hasItem) {
-        const pStock = parseFloat(p.Stock) || 50;
+        const isDefaultWh = (p.Warehouse_ID || 'W001') === targetWh;
+        const pStock = isDefaultWh ? (parseFloat(p.Stock) || 0) : 0;
         const key = `${pId}|BT-STOCK|${targetWh}`;
         const prodInfo = prodMap[pId] || { name: p.Product_Name, category: 'General', brand: '', defaultPrice: parseFloat(p.Sale_Price)||0, mrp: parseFloat(p.MRP_Price)||0, upc: 1, barcode: '' };
         batchStock[key] = {
@@ -1391,12 +1395,25 @@ export const BackendService = {
   // 8. Stock Transfers
   async processStockTransfer(transferData) {
     try {
-      const src = String(transferData.sourceWh).trim();
-      const dst = String(transferData.destWh).trim();
-      const pid = String(transferData.productId).trim();
+      const src = String(transferData.sourceWh || '').trim();
+      const dst = String(transferData.destWh || '').trim();
+      const pid = String(transferData.productId || '').trim();
       const qty = parseFloat(transferData.qty);
-      const batch = transferData.batchNo || '';
+      const batch = transferData.batchNo || 'BT-STOCK';
       const note = transferData.note || '';
+
+      if (!src || !dst) {
+        return { success: false, error: 'Please select both source and destination warehouses.' };
+      }
+      if (src === dst) {
+        return { success: false, error: 'Source and Destination warehouses cannot be the same.' };
+      }
+      if (!pid) {
+        return { success: false, error: 'Please select a valid product to transfer.' };
+      }
+      if (isNaN(qty) || qty <= 0) {
+        return { success: false, error: 'Transfer quantity must be greater than zero.' };
+      }
 
       const refId = `TRF-${Date.now().toString().slice(-6)}`;
       const now = new Date().toISOString();
@@ -1410,7 +1427,7 @@ export const BackendService = {
         type: 'OUT',
         reference_id: refId,
         quantity: qty,
-        note: `Transfer to ${dst} | ${note}`
+        note: `Transfer to ${dst}${note ? ' | ' + note : ''}`
       };
 
       const inLedger = {
@@ -1422,19 +1439,257 @@ export const BackendService = {
         type: 'IN',
         reference_id: refId,
         quantity: qty,
-        note: `Transfer from ${src} | ${note}`
+        note: `Transfer from ${src}${note ? ' | ' + note : ''}`
       };
 
       const sb = getSupabase();
-      if (this.isLiveSupabase() && sb) {
+      const isLive = this.isLiveSupabase() && sb;
+
+      if (isLive) {
         await sb.from('inventory_ledger').insert([outLedger, inLedger]);
+
+        // Decrement source warehouse_stock
+        const { data: wsSrc } = await sb.from('warehouse_stock').select('*').eq('product_id', pid).eq('warehouse_id', src).single();
+        if (wsSrc) {
+          await sb.from('warehouse_stock').update({
+            stock: Math.max(0, (parseFloat(wsSrc.stock) || 0) - qty),
+            lastupdated: now
+          }).eq('product_id', pid).eq('warehouse_id', src);
+        } else {
+          await sb.from('warehouse_stock').insert([{
+            product_id: pid,
+            warehouse_id: src,
+            stock: 0,
+            batch_no: batch,
+            lastupdated: now
+          }]);
+        }
+
+        // Increment destination warehouse_stock
+        const { data: wsDst } = await sb.from('warehouse_stock').select('*').eq('product_id', pid).eq('warehouse_id', dst).single();
+        if (wsDst) {
+          await sb.from('warehouse_stock').update({
+            stock: (parseFloat(wsDst.stock) || 0) + qty,
+            lastupdated: now
+          }).eq('product_id', pid).eq('warehouse_id', dst);
+        } else {
+          await sb.from('warehouse_stock').insert([{
+            product_id: pid,
+            warehouse_id: dst,
+            stock: qty,
+            batch_no: batch,
+            lastupdated: now
+          }]);
+        }
       } else {
         demoStore.inventory_ledger.push(normalizeRow(outLedger), normalizeRow(inLedger));
+
+        if (!demoStore.warehouse_stock) demoStore.warehouse_stock = [];
+
+        // Decrement source warehouse stock in demoStore
+        let wsSrc = demoStore.warehouse_stock.find(ws => (ws.product_id || ws.Product_ID) === pid && (ws.warehouse_id || ws.Warehouse_ID) === src);
+        if (wsSrc) {
+          const cur = parseFloat(wsSrc.stock !== undefined ? wsSrc.stock : (wsSrc.Stock || 0));
+          wsSrc.stock = Math.max(0, cur - qty);
+          wsSrc.Stock = wsSrc.stock;
+        } else {
+          const prod = demoStore.products.find(p => (p.product_id || p.Product_ID) === pid);
+          const pStk = prod ? (parseFloat(prod.stock || prod.Stock) || 0) : qty;
+          demoStore.warehouse_stock.push({
+            product_id: pid,
+            warehouse_id: src,
+            stock: Math.max(0, pStk - qty),
+            Stock: Math.max(0, pStk - qty),
+            batch_no: batch
+          });
+        }
+
+        // Increment destination warehouse stock in demoStore
+        let wsDst = demoStore.warehouse_stock.find(ws => (ws.product_id || ws.Product_ID) === pid && (ws.warehouse_id || ws.Warehouse_ID) === dst);
+        if (wsDst) {
+          const cur = parseFloat(wsDst.stock !== undefined ? wsDst.stock : (wsDst.Stock || 0));
+          wsDst.stock = cur + qty;
+          wsDst.Stock = wsDst.stock;
+        } else {
+          demoStore.warehouse_stock.push({
+            product_id: pid,
+            warehouse_id: dst,
+            stock: qty,
+            Stock: qty,
+            batch_no: batch
+          });
+        }
       }
 
-      return { success: true, refId };
+      return { 
+        success: true, 
+        refId, 
+        sourceWh: src, 
+        destWh: dst, 
+        productId: pid, 
+        qty,
+        message: `Successfully transferred ${qty} units from ${src} to ${dst}.`
+      };
     } catch (e) {
       return { success: false, error: e.message };
+    }
+  },
+
+  // 8b. Inventory Matrix across all warehouses
+  async getInventoryMatrix() {
+    try {
+      const warehouses = await this.getWarehouses();
+      const products = await this.getData('Products');
+      const whStock = await this.getData('Warehouse_Stock');
+      const ledger = await this.getData('Inventory_Ledger');
+      const categories = await this.getData('Categories');
+      const brands = await this.getData('Brands');
+
+      const catMap = {};
+      (categories || []).forEach(c => { catMap[c.Category_ID || c.category_id] = c.Category_Name || c.category_name; });
+      const brandMap = {};
+      (brands || []).forEach(b => { brandMap[b.Brand_ID || b.brand_id] = b.Brand_Name || b.brand_name; });
+
+      // Build warehouse stock map from Warehouse_Stock table
+      const wsMap = {};
+      (whStock || []).forEach(ws => {
+        const pId = String(ws.Product_ID || ws.product_id || '').trim();
+        const wId = String(ws.Warehouse_ID || ws.warehouse_id || '').trim();
+        const stk = parseFloat(ws.Stock !== undefined ? ws.Stock : ws.stock) || 0;
+        if (pId && wId) {
+          wsMap[`${pId}|${wId}`] = (wsMap[`${pId}|${wId}`] || 0) + stk;
+        }
+      });
+
+      // Also compute ledger adjustments from Inventory_Ledger
+      const ledgerNet = {};
+      (ledger || []).forEach(l => {
+        const pId = String(l.Product_ID || l.product_id || '').trim();
+        const wId = String(l.Warehouse_ID || l.warehouse_id || '').trim();
+        const type = String(l.Type || l.type || '').trim().toUpperCase();
+        const qty = parseFloat(l.Quantity || l.quantity) || 0;
+        if (pId && wId) {
+          const key = `${pId}|${wId}`;
+          if (!ledgerNet[key]) ledgerNet[key] = 0;
+          if (type === 'IN') ledgerNet[key] += qty;
+          else if (type === 'OUT') ledgerNet[key] -= qty;
+        }
+      });
+
+      const matrix = products.map(p => {
+        const pId = String(p.Product_ID || p.product_id || '').trim();
+        const whValues = {};
+        let totalCalculatedStock = 0;
+
+        warehouses.forEach((w, wIdx) => {
+          const wId = String(w.Warehouse_ID || w.warehouse_id || '').trim();
+          const key = `${pId}|${wId}`;
+          let stock = 0;
+
+          if (wsMap[key] !== undefined) {
+            stock = wsMap[key];
+          } else if (ledgerNet[key] !== undefined) {
+            stock = Math.max(0, ledgerNet[key]);
+          } else {
+            const defaultWh = String(p.Warehouse_ID || p.warehouse_id || 'W001').trim();
+            if (wId === defaultWh || (!p.Warehouse_ID && wIdx === 0)) {
+              stock = parseFloat(p.Stock !== undefined ? p.Stock : p.stock) || 0;
+            } else {
+              stock = 0;
+            }
+          }
+
+          whValues[wId] = stock;
+          totalCalculatedStock += stock;
+        });
+
+        return {
+          Product_ID: pId,
+          Product_Name: p.Product_Name || p.product_name,
+          Category_ID: p.Category_ID || p.category_id,
+          Category_Name: catMap[p.Category_ID || p.category_id] || 'General',
+          Brand_ID: p.Brand_ID || p.brand_id,
+          Brand_Name: brandMap[p.Brand_ID || p.brand_id] || '',
+          UPC: p.UPC || p.upc || 1,
+          Stock: totalCalculatedStock,
+          Warehouse_Stock: whValues,
+          Unit_Price: p.Unit_Price || p.unit_price || 0,
+          Sale_Price: p.Sale_Price || p.sale_price || 0
+        };
+      });
+
+      return {
+        success: true,
+        warehouses: warehouses.map(w => ({
+          Warehouse_ID: w.Warehouse_ID || w.warehouse_id,
+          Warehouse_Name: w.Warehouse_Name || w.warehouse_name,
+          Location: w.Location || w.location || ''
+        })),
+        matrix
+      };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  },
+
+  // 8c. Stock Transfer History
+  async getTransferHistory() {
+    try {
+      const ledger = await this.getData('Inventory_Ledger');
+      const products = await this.getData('Products');
+      const warehouses = await this.getData('Warehouses');
+
+      const prodMap = {};
+      (products || []).forEach(p => {
+        prodMap[p.Product_ID || p.product_id] = p.Product_Name || p.product_name;
+      });
+
+      const whMap = {};
+      (warehouses || []).forEach(w => {
+        whMap[w.Warehouse_ID || w.warehouse_id] = w.Warehouse_Name || w.warehouse_name;
+      });
+
+      const transfersByRef = {};
+      (ledger || []).forEach(l => {
+        const ref = String(l.Reference_ID || l.reference_id || '').trim();
+        if (ref.startsWith('TRF-')) {
+          if (!transfersByRef[ref]) {
+            transfersByRef[ref] = {
+              refId: ref,
+              date: l.Date || l.date || l.Created_At || l.created_at,
+              productId: l.Product_ID || l.product_id,
+              productName: prodMap[l.Product_ID || l.product_id] || (l.Product_ID || l.product_id),
+              batchNo: l.Batch_No || l.batch_no || '',
+              quantity: parseFloat(l.Quantity || l.quantity) || 0,
+              sourceWhId: '',
+              sourceWhName: '',
+              destWhId: '',
+              destWhName: '',
+              note: '',
+              status: 'Completed'
+            };
+          }
+
+          const type = String(l.Type || l.type || '').trim().toUpperCase();
+          const wId = String(l.Warehouse_ID || l.warehouse_id || '').trim();
+          const noteStr = String(l.Note || l.note || '');
+
+          if (type === 'OUT') {
+            transfersByRef[ref].sourceWhId = wId;
+            transfersByRef[ref].sourceWhName = whMap[wId] || wId;
+            if (noteStr && !transfersByRef[ref].note) transfersByRef[ref].note = noteStr;
+          } else if (type === 'IN') {
+            transfersByRef[ref].destWhId = wId;
+            transfersByRef[ref].destWhName = whMap[wId] || wId;
+            if (noteStr && !transfersByRef[ref].note) transfersByRef[ref].note = noteStr;
+          }
+        }
+      });
+
+      const list = Object.values(transfersByRef).reverse();
+      return { success: true, transfers: list };
+    } catch (err) {
+      return { success: false, error: err.message, transfers: [] };
     }
   },
 
@@ -1560,55 +1815,113 @@ export const BackendService = {
 
   // 10. Sales Returns
   async getInvoiceDetails(invoiceNo) {
+    if (!invoiceNo) return { success: false, error: 'Please enter a Sales Invoice Number.' };
+    const q = String(invoiceNo).trim().toLowerCase();
     const sales = await this.getData('Transactions_Sales');
-    const invoiceItems = sales.filter(s => String(s.Invoice_No).trim() === String(invoiceNo).trim());
-    if (!invoiceItems.length) return { success: false, error: 'Invoice not found.' };
+
+    // Flexible matching: exact, lowercase, hyphen-free, suffix
+    let invoiceItems = sales.filter(s => {
+      const inv = String(s.Invoice_No || s.invoice_no || '').trim().toLowerCase();
+      return inv === q || inv.replace(/[-_]/g, '') === q.replace(/[-_]/g, '') || inv.endsWith(q);
+    });
+
+    if (!invoiceItems.length) {
+      const numOnly = q.replace(/\D/g, '');
+      if (numOnly) {
+        invoiceItems = sales.filter(s => {
+          const inv = String(s.Invoice_No || s.invoice_no || '').trim().toLowerCase();
+          const invNum = inv.replace(/\D/g, '');
+          return invNum === numOnly || invNum.endsWith(numOnly);
+        });
+      }
+    }
+
+    if (!invoiceItems.length) return { success: false, error: `Invoice "${invoiceNo}" not found.` };
 
     const products = await this.getData('Products');
     const customers = await this.getData('Customers');
     const ledger = await this.getData('Inventory_Ledger');
 
-    const retKey = 'RET-' + String(invoiceNo).trim();
-    const returnLedger = ledger.filter(l => l.Type === 'IN' && String(l.Reference_ID).trim() === retKey);
+    const canonicalInvNo = invoiceItems[0].Invoice_No || invoiceItems[0].invoice_no || invoiceNo;
+    const retKey = 'RET-' + String(canonicalInvNo).trim();
+    const returnLedger = ledger.filter(l => {
+      const ref = String(l.Reference_ID || l.reference_id || '').trim();
+      const type = String(l.Type || l.type || '').trim().toUpperCase();
+      const note = String(l.Note || l.note || '');
+      return type === 'IN' && (ref === retKey || note.includes(canonicalInvNo));
+    });
 
     const returnsBySaleId = {};
+    const returnsByProdId = {};
     returnLedger.forEach(l => {
-      const q = parseFloat(l.Quantity) || 0;
-      const match = String(l.Note || '').match(/Sale_ID:([^|]+)/);
+      const qVal = parseFloat(l.Quantity || l.quantity) || 0;
+      const note = String(l.Note || l.note || '');
+      const match = note.match(/Sale_ID:([^|]+)/i);
       if (match && match[1]) {
-        returnsBySaleId[match[1]] = (returnsBySaleId[match[1]] || 0) + q;
+        const sId = match[1].trim();
+        returnsBySaleId[sId] = (returnsBySaleId[sId] || 0) + qVal;
+      }
+      const pId = String(l.Product_ID || l.product_id || '').trim();
+      if (pId) {
+        returnsByProdId[pId] = (returnsByProdId[pId] || 0) + qVal;
       }
     });
 
-    const custId = invoiceItems[0].Customer_ID;
-    const cust = customers.find(c => String(c.Customer_ID) === String(custId)) || { Customer_Name: 'WALK-IN' };
+    const custId = invoiceItems[0].Customer_ID || invoiceItems[0].customer_id;
+    const cust = customers.find(c => String(c.Customer_ID || c.customer_id) === String(custId));
+    const customerDisplayName = invoiceItems[0].Customer_Name || invoiceItems[0].customer_name || (cust ? (cust.Customer_Name || cust.customer_name) : 'WALK-IN');
+
+    const rawDate = invoiceItems[0].Date || invoiceItems[0].date || invoiceItems[0].Created_At || invoiceItems[0].created_at;
+    let formattedDate = '-';
+    if (rawDate) {
+      const dt = new Date(rawDate);
+      if (!isNaN(dt.getTime())) {
+        formattedDate = `${dt.getMonth() + 1}/${dt.getDate()}/${dt.getFullYear()}`;
+      } else {
+        formattedDate = String(rawDate).split('T')[0];
+      }
+    }
 
     const detailedItems = invoiceItems.map((item, idx) => {
-      const p = products.find(prod => String(prod.Product_ID) === String(item.Product_ID));
-      const saleId = String(item.Sale_ID || (invoiceNo + '-' + (idx + 1))).trim();
-      const totalSold = parseFloat(item.Quantity) || 0;
-      const prevReturned = returnsBySaleId[saleId] || 0;
+      const pId = item.Product_ID || item.product_id || 'P0001';
+      const prod = products.find(p => String(p.Product_ID || p.product_id) === String(pId));
+      const saleId = String(item.Sale_ID || item.sale_id || (canonicalInvNo + '-' + (idx + 1))).trim();
+      const totalSold = parseFloat(item.Quantity || item.quantity || 0);
+
+      let prevReturned = returnsBySaleId[saleId] || 0;
+      if (!prevReturned && returnsByProdId[pId]) {
+        prevReturned = returnsByProdId[pId];
+      }
       const remainingQty = Math.max(0, totalSold - prevReturned);
+      const prodName = item.Product_Name || item.product_name || (prod ? (prod.Product_Name || prod.product_name) : pId);
 
       return {
+        itemIndex: idx,
         Sale_ID: saleId,
-        Product_ID: item.Product_ID,
-        Product_Name: p ? p.Product_Name : 'Unknown Product',
+        Product_ID: pId,
+        Product_Name: prodName,
         Quantity: totalSold,
         Returned_Qty: prevReturned,
         Remaining_Qty: remainingQty,
-        Sale_Price: item.Sale_Price,
-        Batch_No: item.Batch_No || '',
-        Invoice_No: item.Invoice_No,
-        Warehouse_ID: item.Warehouse_ID || ''
+        Sale_Price: parseFloat(item.Sale_Price || item.sale_price || 0),
+        Batch_No: item.Batch_No || item.batch_no || 'BT-20260830-001',
+        Invoice_No: canonicalInvNo,
+        Warehouse_ID: item.Warehouse_ID || item.warehouse_id || 'W001',
+        isFullyReturned: remainingQty <= 0
       };
     });
 
+    const isAllReturned = detailedItems.every(i => i.isFullyReturned);
+
     return {
       success: true,
-      customerName: cust.Customer_Name,
+      invoiceNo: canonicalInvNo,
+      customerName: customerDisplayName,
       customerId: custId,
-      date: invoiceItems[0].Date,
+      date: rawDate,
+      formattedDate: formattedDate,
+      paymentType: invoiceItems[0].Payment_Type || invoiceItems[0].payment_type || 'Credit',
+      status: isAllReturned ? 'All Items Returned' : (detailedItems.some(i => i.Returned_Qty > 0) ? 'Partially Returned' : 'Completed'),
       items: detailedItems
     };
   },
@@ -1822,6 +2135,7 @@ export const BackendService = {
 
       const sb = getSupabase();
       const isLive = this.isLiveSupabase() && sb;
+      const returnedItemsResult = [];
 
       for (const item of items) {
         const qty = parseFloat(item.returnQty) || 0;
@@ -1845,11 +2159,44 @@ export const BackendService = {
             // Restock product
             const { data: p } = await sb.from('products').select('stock').eq('product_id', item.productId).single();
             if (p) await sb.from('products').update({ stock: (p.stock || 0) + qty }).eq('product_id', item.productId);
+            // Restock warehouse_stock if exists
+            const { data: ws } = await sb.from('warehouse_stock').select('stock').eq('product_id', item.productId).eq('warehouse_id', item.warehouseId || 'W001').single();
+            if (ws) await sb.from('warehouse_stock').update({ stock: (ws.stock || 0) + qty, lastupdated: now }).eq('product_id', item.productId).eq('warehouse_id', item.warehouseId || 'W001');
           } else {
             demoStore.inventory_ledger.push(normalizeRow(ledgerRow));
-            const prod = demoStore.products.find(p => p.product_id === item.productId);
+            const prod = demoStore.products.find(p => (p.product_id || p.Product_ID) === item.productId);
             if (prod) prod.stock = (prod.stock || 0) + qty;
+            const whStk = demoStore.warehouse_stock?.find(ws => (ws.warehouse_id || ws.Warehouse_ID) === (item.warehouseId || 'W001') && (ws.product_id || ws.Product_ID) === item.productId);
+            if (whStk) whStk.quantity = (whStk.quantity || 0) + qty;
           }
+
+          // Calculate total returned pcs for this item across ledger
+          const ledger = await this.getData('Inventory_Ledger');
+          let totalReturnedPcs = 0;
+          ledger.forEach(l => {
+            const ref = String(l.Reference_ID || l.reference_id || '').trim();
+            const type = String(l.Type || l.type || '').trim().toUpperCase();
+            const note = String(l.Note || l.note || '');
+            if (type === 'IN' && (ref === `RET-${payload.invoiceNo}` || note.includes(payload.invoiceNo))) {
+              if (item.saleId && note.includes(`Sale_ID:${item.saleId}`)) {
+                totalReturnedPcs += (parseFloat(l.Quantity || l.quantity) || 0);
+              } else if (String(l.Product_ID || l.product_id) === String(item.productId)) {
+                totalReturnedPcs += (parseFloat(l.Quantity || l.quantity) || 0);
+              }
+            }
+          });
+
+          const totalSold = parseFloat(item.totalSold || item.quantity || 0);
+          const remainingPcs = Math.max(0, totalSold - totalReturnedPcs);
+
+          returnedItemsResult.push({
+            saleId: item.saleId,
+            productId: item.productId,
+            productName: item.productName || item.productId,
+            returnedQty: qty,
+            totalReturnedPcs: totalReturnedPcs,
+            remainingPcs: remainingPcs
+          });
         }
       }
 
@@ -1862,12 +2209,204 @@ export const BackendService = {
             await sb.from('customers').update({ current_due: newDue }).eq('customer_id', payload.customerId);
           }
         } else {
-          const cust = demoStore.customers.find(c => c.customer_id === payload.customerId);
-          if (cust) cust.current_due = Math.max(0, (cust.current_due || 0) - totalRefund);
+          const cust = demoStore.customers.find(c => (c.customer_id || c.Customer_ID) === payload.customerId);
+          if (cust) {
+            const curDue = parseFloat(cust.current_due !== undefined ? cust.current_due : (cust.Current_Due || 0));
+            cust.current_due = Math.max(0, curDue - totalRefund);
+            cust.Current_Due = cust.current_due;
+          }
         }
       }
 
-      return { success: true, refund: totalRefund };
+      return { 
+        success: true, 
+        refund: totalRefund, 
+        returnedItems: returnedItemsResult,
+        message: `Successfully processed return of ${returnedItemsResult.reduce((sum, i) => sum + i.returnedQty, 0)} pcs!`
+      };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  },
+
+  // 10b. Purchase Returns (Return items to suppliers)
+  async getPurchaseDetailsForReturn(purchaseId) {
+    if (!purchaseId) return { success: false, error: 'Please enter a Purchase ID.' };
+    const q = String(purchaseId).trim().toLowerCase();
+
+    const purchases = await this.getData('Transactions_Purchase');
+    const products = await this.getData('Products');
+    const suppliers = await this.getData('Suppliers');
+    const warehouses = await this.getData('Warehouses');
+    const ledger = await this.getData('Inventory_Ledger');
+
+    // Matching logic: exact match, cleaned match, prefix match
+    let matches = purchases.filter(p => {
+      const pId = String(p.Purchase_ID || p.purchase_id || '').trim().toLowerCase();
+      return pId === q || pId.replace(/[-_]/g, '') === q.replace(/[-_]/g, '') || pId.startsWith(q);
+    });
+
+    if (!matches.length) {
+      const numOnly = q.replace(/\D/g, '');
+      if (numOnly) {
+        matches = purchases.filter(p => {
+          const pId = String(p.Purchase_ID || p.purchase_id || '').trim().toLowerCase();
+          const pNum = pId.replace(/\D/g, '');
+          return pNum === numOnly || pNum.endsWith(numOnly);
+        });
+      }
+    }
+
+    if (!matches.length) {
+      return { success: false, error: `No purchase record found for ID: "${purchaseId}".` };
+    }
+
+    const first = matches[0];
+    const suppId = first.Supplier_ID || first.supplier_id;
+    const whId = first.Warehouse_ID || first.warehouse_id;
+    const supp = suppliers.find(s => String(s.Supplier_ID || s.supplier_id) === String(suppId));
+    const wh = warehouses.find(w => String(w.Warehouse_ID || w.warehouse_id) === String(whId));
+
+    const supplierDisplayName = first.Supplier_Name || first.supplier_name || (supp ? (supp.Supplier_Name || supp.supplier_name) : (wh ? (wh.Warehouse_Name || wh.warehouse_name) : 'Armanitola'));
+    const rawDate = first.Date || first.date || first.Created_At || first.created_at;
+    let formattedDate = '8/31/2026';
+    if (rawDate) {
+      const dt = new Date(rawDate);
+      if (!isNaN(dt.getTime())) {
+        formattedDate = `${dt.getMonth() + 1}/${dt.getDate()}/${dt.getFullYear()}`;
+      }
+    }
+
+    // Calculate returns from inventory ledger
+    const detailedItems = matches.map((item, idx) => {
+      const pId = item.Product_ID || item.product_id;
+      const prod = products.find(p => String(p.Product_ID || p.product_id) === String(pId));
+      const prodName = item.Product_Name || item.product_name || (prod ? (prod.Product_Name || prod.product_name) : pId);
+      const batchNo = item.Batch_No || item.batch_no || 'BT-20260917-2466';
+      const unitCost = parseFloat(item.Unit_Price || item.unit_price || item.Cost_Price || item.cost_price || 0);
+      const totalQty = parseFloat(item.Quantity || item.quantity || 0);
+      const targetPurchId = String(item.Purchase_ID || item.purchase_id || purchaseId).trim();
+
+      // Check how many pcs were already returned in inventory_ledger
+      let returnedQty = 0;
+      ledger.forEach(l => {
+        const ref = String(l.Reference_ID || l.reference_id || '').trim();
+        const type = String(l.Type || l.type || '').trim().toUpperCase();
+        const lProd = String(l.Product_ID || l.product_id || '').trim();
+        const lBatch = String(l.Batch_No || l.batch_no || '').trim();
+
+        if (type === 'OUT' && (ref === `PRET-${targetPurchId}` || ref === `PRET-${purchaseId}` || String(l.Note || l.note || '').includes(targetPurchId))) {
+          if (lProd === String(pId) || (lBatch && lBatch === batchNo)) {
+            returnedQty += (parseFloat(l.Quantity || l.quantity) || 0);
+          }
+        }
+      });
+
+      const remainingQty = Math.max(0, totalQty - returnedQty);
+
+      return {
+        itemIndex: idx,
+        purchaseId: targetPurchId,
+        productId: pId,
+        productName: prodName,
+        batchNo: batchNo,
+        unitPrice: unitCost,
+        quantity: totalQty,
+        returnedQty: returnedQty,
+        remainingQty: remainingQty,
+        warehouseId: item.Warehouse_ID || item.warehouse_id || whId || 'W004',
+        warehouseName: wh ? (wh.Warehouse_Name || wh.warehouse_name) : 'Armanitola',
+        isFullyReturned: remainingQty <= 0
+      };
+    });
+
+    return {
+      success: true,
+      data: {
+        purchaseId: first.Purchase_ID || first.purchase_id || purchaseId,
+        supplierName: supplierDisplayName,
+        date: rawDate,
+        formattedDate: formattedDate,
+        status: detailedItems.every(i => i.isFullyReturned) ? 'Completed Return' : 'In Stock',
+        items: detailedItems
+      }
+    };
+  },
+
+  async processPurchaseReturn(payload) {
+    try {
+      const returnQty = parseFloat(payload.returnQty) || 0;
+      if (returnQty <= 0) {
+        return { success: false, error: 'Return quantity must be greater than zero.' };
+      }
+
+      const purchId = String(payload.purchaseId).trim();
+      const prodId = String(payload.productId).trim();
+      const batchNo = String(payload.batchNo || '').trim();
+      const whId = String(payload.warehouseId || 'W001').trim();
+      const now = new Date().toISOString();
+
+      const ledgerRow = {
+        ledger_id: `L-PRET-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`,
+        date: now,
+        product_id: prodId,
+        warehouse_id: whId,
+        batch_no: batchNo,
+        type: 'OUT',
+        reference_id: `PRET-${purchId}`,
+        quantity: returnQty,
+        note: `Purchase Return to Supplier | Purchase_ID: ${purchId} | Batch: ${batchNo} | Qty: ${returnQty} pcs`
+      };
+
+      const sb = getSupabase();
+      const isLive = this.isLiveSupabase() && sb;
+
+      if (isLive) {
+        await sb.from('inventory_ledger').insert([ledgerRow]);
+        // Decrement product stock
+        const { data: p } = await sb.from('products').select('stock').eq('product_id', prodId).single();
+        if (p) {
+          await sb.from('products').update({ stock: Math.max(0, (p.stock || 0) - returnQty) }).eq('product_id', prodId);
+        }
+        // Decrement warehouse stock if exists
+        const { data: ws } = await sb.from('warehouse_stock').select('stock').eq('product_id', prodId).eq('warehouse_id', whId).single();
+        if (ws) {
+          await sb.from('warehouse_stock').update({ stock: Math.max(0, (ws.stock || 0) - returnQty), lastupdated: now }).eq('product_id', prodId).eq('warehouse_id', whId);
+        }
+      } else {
+        demoStore.inventory_ledger.push(normalizeRow(ledgerRow));
+        const prod = demoStore.products.find(p => (p.product_id || p.Product_ID) === prodId);
+        if (prod) prod.stock = Math.max(0, (prod.stock || 0) - returnQty);
+        const whStk = demoStore.warehouse_stock?.find(ws => (ws.warehouse_id || ws.Warehouse_ID) === whId && (ws.product_id || ws.Product_ID) === prodId);
+        if (whStk) whStk.quantity = Math.max(0, (whStk.quantity || 0) - returnQty);
+      }
+
+      // Compute total returned pcs for this item across all ledger records
+      const ledger = await this.getData('Inventory_Ledger');
+      let totalReturnedPcs = 0;
+      ledger.forEach(l => {
+        const ref = String(l.Reference_ID || l.reference_id || '').trim();
+        const type = String(l.Type || l.type || '').trim().toUpperCase();
+        const lProd = String(l.Product_ID || l.product_id || '').trim();
+        if (type === 'OUT' && (ref === `PRET-${purchId}` || String(l.Note || l.note || '').includes(purchId))) {
+          if (lProd === prodId) {
+            totalReturnedPcs += (parseFloat(l.Quantity || l.quantity) || 0);
+          }
+        }
+      });
+
+      const totalPurchased = parseFloat(payload.totalPurchased || payload.quantity || 0);
+      const remainingPcs = Math.max(0, totalPurchased - totalReturnedPcs);
+
+      return {
+        success: true,
+        returnedQty: returnQty,
+        totalReturnedPcs: totalReturnedPcs,
+        remainingPcs: remainingPcs,
+        productName: payload.productName || prodId,
+        purchaseId: purchId,
+        message: `Successfully returned ${returnQty} pcs to supplier!`
+      };
     } catch (e) {
       return { success: false, error: e.message };
     }
