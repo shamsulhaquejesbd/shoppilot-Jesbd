@@ -959,9 +959,42 @@ input.qs-stepper-input {
 }
 
 /* WAREHOUSE INFO & ANALYTICS */
-.wh-analytics-row { display: grid; grid-template-columns: 390px 1fr; gap: 16px; margin-bottom: 16px; width: 100%; align-items: stretch; }
+.wh-analytics-row { display: grid; grid-template-columns: 410px 1fr; gap: 16px; margin-bottom: 16px; width: 100%; align-items: stretch; }
 .wh-cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; width: 100%; }
 .wh-charts-bottom-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; width: 100%; margin-top: 16px; }
+
+.wh-ctn-badge {
+    background-color: #ecfdf5;
+    color: #059669;
+    border: 1px solid #a7f3d0;
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+}
+
+.wh-ctn-badge-sm {
+    background-color: #ecfdf5;
+    color: #059669;
+    border: 1px solid #a7f3d0;
+    border-radius: 4px;
+    padding: 1.5px 6px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+}
+
 .wh-summary-card {
     background: #ffffff;
     border: 1px solid #e2e8f0;

@@ -212,6 +212,7 @@ window.openSupabaseConfigModal = function() {
       </div>
     `;
     document.body.appendChild(div);
+    modal = div;
   }
 
   // Populate credentials
@@ -225,13 +226,43 @@ window.openSupabaseConfigModal = function() {
   const sqlArea = document.getElementById('cfg_sql_textarea');
   if (sqlArea) sqlArea.value = window.SUPABASE_SCHEMA_SQL || '';
 
-  // Show modal
-  modal.style.display = 'flex';
+  // Show modal safely
+  if (modal) {
+    modal.style.display = 'flex';
+  }
 
   // Automatically run table check
   setTimeout(() => {
     testSupabaseTables();
   }, 200);
+};
+
+// Global UI & Modal Helpers
+window.openModal = function(idOrEl) {
+  if (!idOrEl) return;
+  const m = (typeof idOrEl === 'string') ? document.getElementById(idOrEl) : idOrEl;
+  if (m && m.style) m.style.display = 'flex';
+};
+
+window.closeModal = function(idOrEl) {
+  if (!idOrEl) return;
+  const m = (typeof idOrEl === 'string') ? document.getElementById(idOrEl) : idOrEl;
+  if (m && m.style) m.style.display = 'none';
+};
+
+window.openLogoutModal = function() {
+  const m = document.getElementById('logoutConfirmModal');
+  if (m && m.style) m.style.display = 'flex';
+};
+
+window.executeLogout = function() {
+  if (window.BackendService && typeof window.BackendService.logout === 'function') {
+    window.BackendService.logout();
+  } else {
+    localStorage.removeItem('shoppilot_active_user');
+    sessionStorage.removeItem('shoppilot_active_user');
+  }
+  window.location.reload();
 };
 
 // Toggle API key visibility

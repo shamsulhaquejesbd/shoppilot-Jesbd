@@ -176,11 +176,11 @@ window.loadGlobalMetadata = function() {
     }).getData('Brands');
 
     google.script.run.withSuccessHandler(data => {
-        data.forEach(p => productMap[p.Product_ID] = p);
+        (data || []).forEach(p => productMap[p.Product_ID] = p);
     }).getData('Products');
 
     google.script.run.withSuccessHandler(data => {
-        data.forEach(c => customerMap[c.Customer_ID] = c.Customer_Name);
+        (data || []).forEach(c => customerMap[c.Customer_ID] = c.Customer_Name);
     }).getData('Customers');
 
     google.script.run.withSuccessHandler(data => {
@@ -245,33 +245,54 @@ window.formatCtnPcs = function(totalPcs, packSize) {
 };
 
 // UI helpers
-window.closeModal = function(id) {
-    const m = document.getElementById(id);
-    if (m) m.style.display = 'none';
+window.openModal = function(idOrEl) {
+    if (!idOrEl) return;
+    const m = (typeof idOrEl === 'string') ? document.getElementById(idOrEl) : idOrEl;
+    if (m && m.style) m.style.display = 'flex';
+};
+
+window.closeModal = function(idOrEl) {
+    if (!idOrEl) return;
+    const m = (typeof idOrEl === 'string') ? document.getElementById(idOrEl) : idOrEl;
+    if (m && m.style) m.style.display = 'none';
 };
 
 window.showAlertModal = function(title, msg) {
-    document.getElementById('generalAlertTitle').textContent = title;
-    document.getElementById('generalAlertMsg').textContent = msg;
-    document.getElementById('generalAlertModal').style.display = 'flex';
+    const t = document.getElementById('generalAlertTitle');
+    if (t) t.textContent = title || '';
+    const m = document.getElementById('generalAlertMsg');
+    if (m) m.textContent = msg || '';
+    const modal = document.getElementById('generalAlertModal');
+    if (modal && modal.style) modal.style.display = 'flex';
 };
 
 window.toggleSidebar = function() {
     const sb = document.getElementById('sidebar');
     const icon = document.getElementById('toggleIcon');
-    sb.classList.toggle('collapsed');
-    icon.classList.toggle('fa-chevron-right', sb.classList.contains('collapsed'));
-    icon.classList.toggle('fa-chevron-left', !sb.classList.contains('collapsed'));
+    if (sb) sb.classList.toggle('collapsed');
+    if (icon && sb) {
+        icon.classList.toggle('fa-chevron-right', sb.classList.contains('collapsed'));
+        icon.classList.toggle('fa-chevron-left', !sb.classList.contains('collapsed'));
+    }
 };
 
 window.toggleMobileMenu = function() {
     const sb = document.getElementById('sidebar');
-    sb.classList.toggle('mobile-open');
+    if (sb) sb.classList.toggle('mobile-open');
 };
 
-window.openLogoutModal = function() { document.getElementById('logoutConfirmModal').style.display = 'flex'; };
+window.openLogoutModal = function() {
+    const modal = document.getElementById('logoutConfirmModal');
+    if (modal && modal.style) modal.style.display = 'flex';
+};
+
 window.executeLogout = function() {
-    if (window.BackendService) window.BackendService.logout();
+    if (window.BackendService && typeof window.BackendService.logout === 'function') {
+        window.BackendService.logout();
+    } else {
+        localStorage.removeItem('shoppilot_active_user');
+        sessionStorage.removeItem('shoppilot_active_user');
+    }
     window.location.reload();
 };
 
@@ -3208,37 +3229,101 @@ window.processPayment = function() {
 // SUPPLIERS
 window.loadSupplierData = function() {
     google.script.run.withSuccessHandler(supps => {
+        allSuppliers = supps || [];
         const tbody = document.getElementById('supplierTableBody');
         if (!tbody) return;
-        tbody.innerHTML = (supps || []).map(s => `
+        if (!allSuppliers.length) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center" style="padding: 20px; color: #94a3b8;">No suppliers found.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = allSuppliers.map(s => {
+            const sid = s.Supplier_ID || s.supplier_id || '';
+            const sname = s.Supplier_Name || s.supplier_name || '';
+            const contact = s.Contact_Person || s.contact_person || '';
+            const phone = s.Phone || s.phone || '';
+            return `
             <tr>
-                <td><strong>${s.Supplier_ID}</strong></td>
-                <td><strong>${s.Supplier_Name}</strong></td>
-                <td>${s.Contact_Person || ''}</td>
-                <td>${s.Phone || ''}</td>
-                <td><button class="btn btn-secondary btn-sm" onclick="alert('${s.Supplier_Name}')">Edit</button></td>
-            </tr>`).join('');
+                <td><strong style="color: #0f172a;">${escapeHtml(sid)}</strong></td>
+                <td><strong style="color: #2563eb;">${escapeHtml(sname)}</strong></td>
+                <td>${escapeHtml(contact || 'N/A')}</td>
+                <td>${escapeHtml(phone || 'N/A')}</td>
+                <td>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="openEditSupplierModal('${escapeHtml(sid)}')" style="display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; font-weight: 600;">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                </td>
+            </tr>`;
+        }).join('');
     }).getData('Suppliers');
 };
 
 window.openSupplierModal = function() {
     const form = document.getElementById('supplierForm');
     if (form) form.reset();
+    const idEl = document.getElementById('s_id');
+    if (idEl) idEl.value = '';
+    const titleEl = document.getElementById('supplierModalTitle');
+    if (titleEl) titleEl.innerHTML = '<i class="fas fa-truck-loading"></i> Add Supplier';
+    const btnText = document.getElementById('btnSaveSupplierText');
+    if (btnText) btnText.textContent = 'Save Supplier';
+    const modal = document.getElementById('supplierModal');
+    if (modal) modal.style.display = 'flex';
+};
+
+window.openEditSupplierModal = function(suppId) {
+    if (!suppId) return;
+    const supp = (allSuppliers || []).find(s => String(s.Supplier_ID || s.supplier_id).trim() === String(suppId).trim());
+    if (!supp) return showAlertModal("Not Found", "Supplier record not found.");
+
+    const idEl = document.getElementById('s_id');
+    if (idEl) idEl.value = supp.Supplier_ID || supp.supplier_id || '';
+
+    const nameEl = document.getElementById('s_name');
+    if (nameEl) nameEl.value = supp.Supplier_Name || supp.supplier_name || '';
+
+    const contactEl = document.getElementById('s_contact');
+    if (contactEl) contactEl.value = supp.Contact_Person || supp.contact_person || '';
+
+    const phoneEl = document.getElementById('s_phone');
+    if (phoneEl) phoneEl.value = supp.Phone || supp.phone || '';
+
+    const titleEl = document.getElementById('supplierModalTitle');
+    if (titleEl) titleEl.innerHTML = `<i class="fas fa-edit"></i> Edit Supplier (${escapeHtml(supp.Supplier_ID || supp.supplier_id)})`;
+
+    const btnText = document.getElementById('btnSaveSupplierText');
+    if (btnText) btnText.textContent = 'Update Supplier';
+
     const modal = document.getElementById('supplierModal');
     if (modal) modal.style.display = 'flex';
 };
 
 window.saveSupplier = function() {
+    const suppId = document.getElementById('s_id')?.value?.trim();
+    const name = document.getElementById('s_name')?.value?.trim();
+    if (!name) return showAlertModal("Validation", "Supplier Name is required.");
+    const contact = document.getElementById('s_contact')?.value?.trim() || '';
+    const phone = document.getElementById('s_phone')?.value?.trim() || '';
+
+    const isEdit = Boolean(suppId);
     const data = {
-        Supplier_ID: 'AUTO',
-        Supplier_Name: document.getElementById('s_name')?.value?.trim() || '',
-        Contact_Person: document.getElementById('s_contact')?.value?.trim() || '',
-        Phone: document.getElementById('s_phone')?.value?.trim() || ''
+        Supplier_ID: isEdit ? suppId : 'AUTO',
+        Supplier_Name: name,
+        Contact_Person: contact,
+        Phone: phone
     };
-    google.script.run.withSuccessHandler(() => {
-        closeModal('supplierModal');
-        loadSupplierData();
-    }).writeData('Suppliers', data);
+
+    google.script.run
+        .withSuccessHandler((res) => {
+            closeModal('supplierModal');
+            loadSupplierData();
+            refreshMasterLists();
+            if (window.loadGlobalMetadata) window.loadGlobalMetadata();
+            showAlertModal("Success", isEdit ? "Supplier updated successfully!" : "Supplier added successfully!");
+        })
+        .withFailureHandler((err) => {
+            showAlertModal("Error", (err && err.message) ? err.message : "Failed to save supplier.");
+        })
+        .writeData('Suppliers', data);
 };
 
 // RETURNS
@@ -3479,7 +3564,8 @@ window.exportTableToExcel = function() {
 
 // UNIVERSAL LOOKUP
 window.openDocLookupModal = function() {
-    document.getElementById('docLookupModal').style.display = 'flex';
+    const modal = document.getElementById('docLookupModal');
+    if (modal && modal.style) modal.style.display = 'flex';
 };
 
 window.executeUniversalLookup = function() {
@@ -3769,8 +3855,10 @@ window.loadUsersData = function() {
 };
 
 window.openAddUserModal = function() {
-    document.getElementById('addUserForm').reset();
-    document.getElementById('addUserModal').style.display = 'flex';
+    const form = document.getElementById('addUserForm');
+    if (form) form.reset();
+    const modal = document.getElementById('addUserModal');
+    if (modal && modal.style) modal.style.display = 'flex';
 };
 
 window.submitNewUser = function() {
@@ -3857,14 +3945,17 @@ window.renderWarehouseInfoView = function(d) {
                         <div style="width: 76px; height: 76px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
                             ${generateMiniDonutSvg(categoryBreakdown, 76, 14)}
                         </div>
-                        <div style="flex: 1; display: flex; flex-direction: column; gap: 6px;">
+                        <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
                             ${categoryBreakdown.map(cat => `
-                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem;">
-                                    <div style="display: flex; align-items: center; gap: 6px; color: #334155; font-weight: 600;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem; gap: 8px;">
+                                    <div style="display: flex; align-items: center; gap: 6px; color: #334155; font-weight: 600; white-space: nowrap;">
                                         <span style="width: 7px; height: 7px; border-radius: 50%; background: ${cat.color}; display: inline-block;"></span>
                                         <span>${cat.name} (${cat.percentage}%)</span>
                                     </div>
-                                    <div style="font-weight: 700; color: #0f172a;">৳ ${formatBD(cat.value)}</div>
+                                    <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+                                        <span class="wh-ctn-badge">${formatBD(cat.ctn !== undefined ? cat.ctn : (cat.totalCtn || 0))} CTN</span>
+                                        <span style="font-weight: 700; color: #0f172a; white-space: nowrap; text-align: right; min-width: 80px;">৳${formatBD(cat.value)}</span>
+                                    </div>
                                 </div>
                             `).join('')}
                         </div>
@@ -3894,7 +3985,7 @@ window.renderWarehouseInfoView = function(d) {
                     </div>
 
                     <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px;">
-                        <div style="min-width: 0;">
+                        <div style="min-width: 0; flex-shrink: 0;">
                             <div style="font-size: 1.25rem; font-weight: 900; color: #0f172a; line-height: 1.15; margin-bottom: 3px; white-space: nowrap;">
                                 ৳ ${formatBD(w.totalValue)}
                             </div>
@@ -3903,18 +3994,21 @@ window.renderWarehouseInfoView = function(d) {
                             </div>
                         </div>
 
-                        <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
-                            <div style="width: 48px; height: 48px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
-                                ${generateMiniDonutSvg(categories, 48, 8)}
+                        <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0; background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 10px; padding: 6px 10px;">
+                            <div style="width: 44px; height: 44px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
+                                ${generateMiniDonutSvg(categories, 44, 7)}
                             </div>
-                            <div style="display: flex; flex-direction: column; gap: 3px; min-width: 100px;">
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
                                 ${categories.map(c => `
-                                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.66rem; gap: 4px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.66rem; gap: 6px;">
                                         <div style="display: flex; align-items: center; gap: 3px; color: #334155; font-weight: 600; white-space: nowrap;">
                                             <span style="width: 5px; height: 5px; border-radius: 50%; background: ${c.color}; display: inline-block;"></span>
                                             <span>${c.name} (${c.percentage}%)</span>
                                         </div>
-                                        <div style="font-weight: 700; color: #0f172a; white-space: nowrap;">৳ ${formatBD(c.value)}</div>
+                                        <div style="display: flex; align-items: center; gap: 5px; flex-shrink: 0;">
+                                            <span class="wh-ctn-badge-sm">${formatBD(c.ctn !== undefined ? c.ctn : (c.totalCtn || 0))} CTN</span>
+                                            <div style="font-weight: 700; color: #0f172a; white-space: nowrap; text-align: right;">৳${formatBD(c.value)}</div>
+                                        </div>
                                     </div>
                                 `).join('')}
                             </div>

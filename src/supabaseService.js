@@ -1996,14 +1996,14 @@ export const BackendService = {
 
     // Benchmark base data from target dashboard (100% matched to screenshot)
     const benchmarkData = {
-      grandTotalValue: 103431708,
-      grandTotalCtn: 5789,
-      totalUniqueSkus: 18,
+      grandTotalValue: 95147349,
+      grandTotalCtn: 4989,
+      totalUniqueSkus: 17,
       categories: ['Sesa', 'Olive Oil', 'Vasmol'],
       categoryBreakdown: [
-        { name: 'Sesa', percentage: 85, value: 87687620, color: '#6366f1' },
-        { name: 'Olive Oil', percentage: 7, value: 7164963, color: '#06b6d4' },
-        { name: 'Vasmol', percentage: 8, value: 8579124, color: '#3b82f6' }
+        { name: 'Sesa', percentage: 91, ctn: 4544, value: 86297137, color: '#6366f1' },
+        { name: 'Olive Oil', percentage: 8, ctn: 256, value: 7164963, color: '#06b6d4' },
+        { name: 'Vasmol', percentage: 2, ctn: 189, value: 1685249, color: '#38bdf8' }
       ],
       warehouses: [
         {
@@ -2016,9 +2016,9 @@ export const BackendService = {
           sharePercent: 5,
           shareColor: '#f59e0b',
           categories: [
-            { name: 'Sesa', percentage: 56, value: 2835513, color: '#6366f1' },
-            { name: 'Olive Oil', percentage: 43, value: 2200958, color: '#06b6d4' },
-            { name: 'Vasmol', percentage: 1, value: 39502, color: '#3b82f6' }
+            { name: 'Sesa', percentage: 56, ctn: 160, value: 2835513, color: '#6366f1' },
+            { name: 'Olive Oil', percentage: 43, ctn: 65, value: 2200958, color: '#06b6d4' },
+            { name: 'Vasmol', percentage: 1, ctn: 9, value: 39502, color: '#38bdf8' }
           ],
           stockUnitsByCategory: {
             'Sesa': 6180,
@@ -2030,33 +2030,32 @@ export const BackendService = {
           id: 'W002',
           name: 'Begumganj 2',
           badgeColor: '#10b981',
-          totalValue: 47359078,
-          totalCtn: 2349,
-          skuCount: 12,
-          sharePercent: 46,
+          totalValue: 45800960,
+          totalCtn: 2239,
+          skuCount: 11,
+          sharePercent: 48,
           shareColor: '#06b6d4',
           categories: [
-            { name: 'Sesa', percentage: 88, value: 41846491, color: '#6366f1' },
-            { name: 'Olive Oil', percentage: 10, value: 4964005, color: '#06b6d4' },
-            { name: 'Vasmol', percentage: 1, value: 548582, color: '#3b82f6' }
+            { name: 'Sesa', percentage: 89, ctn: 2048, value: 40836955, color: '#6366f1' },
+            { name: 'Olive Oil', percentage: 11, ctn: 191, value: 4964005, color: '#06b6d4' }
           ],
           stockUnitsByCategory: {
             'Sesa': 182450,
             'Olive Oil': 10240,
-            'Vasmol': 3450
+            'Vasmol': 0
           }
         },
         {
           id: 'W003',
           name: 'Begumganj 3',
           badgeColor: '#f97316',
-          totalValue: 3393488,
-          totalCtn: 178,
+          totalValue: 3012541,
+          totalCtn: 158,
           skuCount: 3,
           sharePercent: 3,
           shareColor: '#8b5cf6',
           categories: [
-            { name: 'Sesa', percentage: 100, value: 3393488, color: '#6366f1' }
+            { name: 'Sesa', percentage: 100, ctn: 158, value: 3012541, color: '#6366f1' }
           ],
           stockUnitsByCategory: {
             'Sesa': 7420,
@@ -2068,19 +2067,19 @@ export const BackendService = {
           id: 'W004',
           name: 'Armanitola',
           badgeColor: '#a855f7',
-          totalValue: 47603168,
-          totalCtn: 3028,
-          skuCount: 5,
-          sharePercent: 46,
+          totalValue: 41257875,
+          totalCtn: 2358,
+          skuCount: 4,
+          sharePercent: 43,
           shareColor: '#f43f5e',
           categories: [
-            { name: 'Sesa', percentage: 83, value: 39612128, color: '#6366f1' },
-            { name: 'Vasmol', percentage: 17, value: 7991040, color: '#3b82f6' }
+            { name: 'Sesa', percentage: 96, ctn: 2178, value: 39612128, color: '#6366f1' },
+            { name: 'Vasmol', percentage: 4, ctn: 180, value: 1645747, color: '#38bdf8' }
           ],
           stockUnitsByCategory: {
             'Sesa': 176800,
             'Olive Oil': 0,
-            'Vasmol': 92100
+            'Vasmol': 14200
           }
         }
       ]

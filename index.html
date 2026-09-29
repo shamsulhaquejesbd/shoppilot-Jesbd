@@ -13,6 +13,39 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Segoe+UI&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+    <!-- Core UI & Modal Helpers Bootstrap -->
+    <script>
+        window.openModal = function(idOrEl) {
+            if (!idOrEl) return;
+            var m = (typeof idOrEl === 'string') ? document.getElementById(idOrEl) : idOrEl;
+            if (m && m.style) m.style.display = 'flex';
+        };
+        window.closeModal = function(idOrEl) {
+            if (!idOrEl) return;
+            var m = (typeof idOrEl === 'string') ? document.getElementById(idOrEl) : idOrEl;
+            if (m && m.style) m.style.display = 'none';
+        };
+        window.openLogoutModal = function() {
+            var m = document.getElementById('logoutConfirmModal');
+            if (m && m.style) m.style.display = 'flex';
+        };
+        window.executeLogout = function() {
+            if (window.BackendService && typeof window.BackendService.logout === 'function') {
+                window.BackendService.logout();
+            } else {
+                try {
+                    localStorage.removeItem('shoppilot_active_user');
+                    sessionStorage.removeItem('shoppilot_active_user');
+                } catch (e) {}
+            }
+            window.location.reload();
+        };
+        function openLogoutModal() { window.openLogoutModal(); }
+        function closeModal(id) { window.closeModal(id); }
+        function openModal(id) { window.openModal(id); }
+        function executeLogout() { window.executeLogout(); }
+    </script>
+
     <!-- shoPPilot Stylesheet -->
     <link rel="stylesheet" href="/src/shoppilot.css">
 </head>
@@ -1200,18 +1233,35 @@
 
     <!-- Supplier Modal -->
     <div id="supplierModal" class="modal">
-        <div class="modal-content" style="max-width: 450px;">
-            <div class="modal-header"><h3>Add Supplier</h3><button class="btn-close" onclick="closeModal('supplierModal')">&times;</button></div>
-            <div class="modal-body">
-                <form id="supplierForm">
-                    <div class="form-group"><label>Supplier Name</label><input type="text" id="s_name" class="form-control" required></div>
-                    <div class="form-group"><label>Contact Person</label><input type="text" id="s_contact" class="form-control"></div>
-                    <div class="form-group"><label>Phone</label><input type="text" id="s_phone" class="form-control" required></div>
+        <div class="modal-content" style="max-width: 480px; border-radius: 16px; overflow: hidden; background: #ffffff; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
+            <div class="modal-header" style="background: #3b82f6; color: white; padding: 16px 22px; display: flex; justify-content: space-between; align-items: center;">
+                <h3 id="supplierModalTitle" style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-truck-loading"></i> Add Supplier
+                </h3>
+                <button type="button" class="btn-close" onclick="closeModal('supplierModal')" style="color: #ffffff; font-size: 1.35rem; line-height: 1; background: transparent; border: none; cursor: pointer; opacity: 0.9;">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 22px 24px;">
+                <form id="supplierForm" onsubmit="event.preventDefault(); saveSupplier();">
+                    <input type="hidden" id="s_id">
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label style="font-size: 0.72rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; display: block;">Supplier Name *</label>
+                        <input type="text" id="s_name" class="form-control" placeholder="e.g. Aman Trading Corp" required style="font-weight: 600; border-radius: 10px; border: 1.5px solid #cbd5e1; padding: 10px 14px;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label style="font-size: 0.72rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; display: block;">Contact Person</label>
+                        <input type="text" id="s_contact" class="form-control" placeholder="e.g. Rafiqul Islam" style="font-weight: 600; border-radius: 10px; border: 1.5px solid #cbd5e1; padding: 10px 14px;">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 6px;">
+                        <label style="font-size: 0.72rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 6px; display: block;">Phone Number *</label>
+                        <input type="text" id="s_phone" class="form-control" placeholder="e.g. +880 1712-345678" required style="font-weight: 600; border-radius: 10px; border: 1.5px solid #cbd5e1; padding: 10px 14px;">
+                    </div>
                 </form>
             </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('supplierModal')">Cancel</button>
-                <button class="btn btn-primary" onclick="saveSupplier()">Save</button>
+            <div class="modal-footer" style="padding: 14px 22px; border-top: 1px solid #f1f5f9; display: flex; justify-content: flex-end; gap: 10px; background: #ffffff;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('supplierModal')" style="background: #526173; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600;">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btnSaveSupplier" onclick="saveSupplier()" style="background: #3b82f6; color: white; border: none; padding: 10px 22px; border-radius: 8px; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                    <i class="fas fa-save"></i> <span id="btnSaveSupplierText">Save Supplier</span>
+                </button>
             </div>
         </div>
     </div>
