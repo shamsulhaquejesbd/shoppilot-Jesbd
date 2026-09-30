@@ -399,11 +399,14 @@ window.loadDashboardData = function() {
         if (d.lowStock?.length) {
             lBox.innerHTML = d.lowStock.map(p => `
                 <div class="alert-item-custom">
-                    <div><h4>${p.Product_Name}</h4><p style="font-size:0.75rem; color:#64748b;">Qty: ${p.Stock}</p></div>
+                    <div class="alert-item-custom-info">
+                        <h4>${escapeHtml(p.Product_Name || p.product_name || '')}</h4>
+                        <p>Qty: ${p.Stock !== undefined ? p.Stock : p.stock}</p>
+                    </div>
                     <button class="btn btn-primary btn-sm" onclick="switchAppView('purchases')">Order</button>
                 </div>`).join('');
         } else {
-            lBox.innerHTML = '<div class="alert-item-custom" style="grid-column: span 2; background:#f0fdf4;"><h4>✅ Healthy Inventory</h4></div>';
+            lBox.innerHTML = '<div class="alert-item-custom" style="grid-column: 1 / -1; background:#f0fdf4; border-left-color:#22c55e;"><div class="alert-item-custom-info"><h4 style="color:#166534;">✅ Healthy Inventory</h4><p style="color:#15803d; margin:2px 0 0;">All items are adequately stocked</p></div></div>';
         }
 
         loadChartsData();
@@ -2013,24 +2016,42 @@ window.resetQuickSaleUI = function() {
     closeModal('quickSaleModal');
 };
 
-// Global click listener to close Quick Sale dropdown when clicked outside
+// Global click listener to close Quick Sale & Quick Purchase dropdown when clicked outside
 document.addEventListener('click', function(e) {
-    const searchBar = document.querySelector('.qs-search-bar');
+    const searchBar = document.querySelector('#quickSaleModal .qs-search-bar');
     const dropdown = document.getElementById('qs_search_results');
     if (dropdown && searchBar && !searchBar.contains(e.target) && !dropdown.contains(e.target)) {
         dropdown.style.display = 'none';
     }
+
+    const qpSearchBar = document.querySelector('#quickPurchaseModule .qs-search-bar');
+    const qpDropdown = document.getElementById('qp_results');
+    if (qpDropdown && qpSearchBar && !qpSearchBar.contains(e.target) && !qpDropdown.contains(e.target)) {
+        qpDropdown.style.display = 'none';
+    }
 });
 
-// QUICK PURCHASE (MULTI-PRODUCT PURCHASE INBOUND WITH CTN RECEIVED)
+// QUICK PURCHASE (MOBILE APP INTERFACE)
 window.openQuickPurchase = function() {
     const modal = document.getElementById('quickPurchaseModule');
     if (modal) modal.style.display = 'flex';
+
+    // Reset UI to form
+    const formCont = document.getElementById('qp_form_container');
+    const succScreen = document.getElementById('qp_success_screen');
+    if (formCont) formCont.style.display = 'flex';
+    if (succScreen) succScreen.style.display = 'none';
 
     // Set purchase date if empty
     const purchDate = document.getElementById('qp_purchase_date');
     if (purchDate && !purchDate.value) {
         purchDate.value = new Date().toISOString().split('T')[0];
+    }
+
+    // Set auto PO invoice number
+    const invNoEl = document.getElementById('qp_invoice_no');
+    if (invNoEl && !invNoEl.value) {
+        invNoEl.value = 'PO-' + new Date().toISOString().slice(0,10).replace(/-/g,'') + '-' + Math.floor(100 + Math.random()*900);
     }
 
     // Populate Warehouses
@@ -2039,7 +2060,6 @@ window.openQuickPurchase = function() {
         const whSel = document.getElementById('qp_warehouse_select');
         if (whSel) {
             whSel.innerHTML = warehouseList.map(w => `<option value="${w.Warehouse_ID}">${w.Warehouse_Name}</option>`).join('');
-            // If MouloviBazar exists, select it as default matching user screenshot
             const mb = warehouseList.find(w => (w.Warehouse_Name || '').toLowerCase().includes('moulovi'));
             if (mb) whSel.value = mb.Warehouse_ID;
         }
@@ -2050,8 +2070,7 @@ window.openQuickPurchase = function() {
         (data || []).forEach(s => supplierMap[s.Supplier_ID] = s.Supplier_Name);
         const suppSel = document.getElementById('qp_supplier_select');
         if (suppSel) {
-            suppSel.innerHTML = '<option value="">Select Supplier</option>' + 
-                (data || []).map(s => `<option value="${s.Supplier_ID}">${s.Supplier_Name}</option>`).join('');
+            suppSel.innerHTML = (data || []).map((s, idx) => `<option value="${s.Supplier_ID}" ${idx === 0 ? 'selected' : ''}>${s.Supplier_Name}</option>`).join('');
         }
     }).getData('Suppliers');
 
@@ -2062,9 +2081,7 @@ window.openQuickPurchase = function() {
         (prods || []).forEach(p => productMap[p.Product_ID] = p);
     }).getData('Products');
 
-    // Reset items and form inputs
-    qp_cart = [];
-    qp_resetEntryFields();
+    // Render Cart
     qp_renderCart();
 };
 
@@ -2074,39 +2091,13 @@ window.closeQuickPurchase = function() {
     if (dd) dd.style.display = 'none';
 };
 
-window.qp_resetEntryFields = function() {
-    const sInp = document.getElementById('qp_search_input');
-    if (sInp) sInp.value = '';
-    const selId = document.getElementById('qp_selected_prod_id');
-    if (selId) selId.value = '';
-    const selUpc = document.getElementById('qp_selected_upc');
-    if (selUpc) selUpc.value = '1';
-
-    const bInp = document.getElementById('qp_batch_input');
-    if (bInp) bInp.value = '';
-    const expInp = document.getElementById('qp_expiry_input');
-    if (expInp) expInp.value = '';
-
-    const ctnQty = document.getElementById('qp_ctn_qty');
-    if (ctnQty) ctnQty.value = '0';
-    const loosePcs = document.getElementById('qp_loose_pcs');
-    if (loosePcs) loosePcs.value = '0';
-    const paidPcs = document.getElementById('qp_paid_pcs');
-    if (paidPcs) paidPcs.value = '0';
-    const freePcs = document.getElementById('qp_free_pcs');
-    if (freePcs) freePcs.value = '0';
-
-    const ctnCost = document.getElementById('qp_ctn_cost');
-    if (ctnCost) ctnCost.value = '0.00';
-    const unitCost = document.getElementById('qp_unit_cost');
-    if (unitCost) unitCost.value = '0.00';
-    const salePrice = document.getElementById('qp_sale_price');
-    if (salePrice) salePrice.value = '0.00';
-    const mrpPrice = document.getElementById('qp_mrp_price');
-    if (mrpPrice) mrpPrice.value = '0.00';
-
-    const dd = document.getElementById('qp_results');
-    if (dd) dd.style.display = 'none';
+window.qp_resetUI = function() {
+    const formCont = document.getElementById('qp_form_container');
+    const succScreen = document.getElementById('qp_success_screen');
+    if (formCont) formCont.style.display = 'flex';
+    if (succScreen) succScreen.style.display = 'none';
+    qp_cart = [];
+    qp_renderCart();
 };
 
 window.qp_filterProducts = function(val) {
@@ -2126,16 +2117,21 @@ window.qp_filterProducts = function(val) {
 
     if (matches.length) {
         dd.innerHTML = matches.slice(0, 15).map(p => `
-            <div class="qp-drop-item" style="padding:10px 14px; border-bottom:1px solid #f1f5f9; cursor:pointer;" onclick="qp_selectProduct('${p.Product_ID}')">
-                <div style="font-weight:700; color:#1e293b;">${p.Product_Name}</div>
-                <div style="font-size:0.78rem; color:#64748b; display:flex; justify-content:space-between; margin-top:2px;">
-                    <span>Code: <strong>${p.Product_ID}</strong> | Pack: <strong>${p.UPC || 1} pcs/CTN</strong></span>
-                    <span>Cost: ৳${formatBD(p.Unit_Price || 0)} | Sale: ৳${formatBD(p.Sale_Price || 0)}</span>
+            <div class="qs-dropdown-item" onclick="qp_selectProduct('${p.Product_ID}')">
+                <div>
+                    <div style="font-weight:700; color:#0f172a;">${p.Product_Name}</div>
+                    <div style="font-size:0.75rem; color:#64748b; margin-top:2px;">
+                        <span>Code: <strong>${p.Product_ID}</strong> | Pack: <strong>${p.UPC || 1} pcs/CTN</strong></span>
+                    </div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-weight:700; color:#059669;">৳${formatBD(p.Unit_Price || 0)}</div>
+                    <div style="font-size:0.72rem; color:#64748b;">Cost/pc</div>
                 </div>
             </div>`).join('');
         dd.style.display = 'block';
     } else {
-        dd.innerHTML = '<div style="padding:12px; color:#94a3b8; text-align:center;">No matching products found</div>';
+        dd.innerHTML = '<div style="padding:14px; color:#94a3b8; text-align:center; font-size:0.85rem;">No matching products found</div>';
         dd.style.display = 'block';
     }
 };
@@ -2145,172 +2141,124 @@ window.qp_selectProduct = function(productId) {
     const p = prods.find(item => item.Product_ID === productId) || productMap[productId];
     if (!p) return;
 
-    const sInp = document.getElementById('qp_search_input');
-    if (sInp) sInp.value = p.Product_Name;
-    const selId = document.getElementById('qp_selected_prod_id');
-    if (selId) selId.value = p.Product_ID;
-
-    // Pack size (units per carton)
     let packSize = parseInt(p.UPC) || 1;
     if (packSize <= 0) packSize = 1;
-    const selUpc = document.getElementById('qp_selected_upc');
-    if (selUpc) selUpc.value = packSize;
-
-    // Batch & Expiry
-    const bInp = document.getElementById('qp_batch_input');
-    if (bInp) {
-        bInp.value = '';
-        bInp.placeholder = `Auto if blank`;
-    }
-
-    const expInp = document.getElementById('qp_expiry_input');
-    if (expInp) {
-        if (p.Expiry_Date) {
-            expInp.value = p.Expiry_Date.split('T')[0];
-        } else {
-            const d = new Date();
-            d.setFullYear(d.getFullYear() + 1);
-            expInp.value = d.toISOString().split('T')[0];
-        }
-    }
 
     const uCost = parseFloat(p.Unit_Price) || 0;
     const sPrice = parseFloat(p.Sale_Price) || 0;
     const mPrice = parseFloat(p.MRP_Price) || (sPrice ? Math.round(sPrice * 1.1) : 0);
     const cCost = uCost * packSize;
 
-    const uCostEl = document.getElementById('qp_unit_cost');
-    if (uCostEl) uCostEl.value = uCost.toFixed(2);
-    const cCostEl = document.getElementById('qp_ctn_cost');
-    if (cCostEl) cCostEl.value = cCost.toFixed(2);
-    const sPriceEl = document.getElementById('qp_sale_price');
-    if (sPriceEl) sPriceEl.value = sPrice.toFixed(2);
-    const mPriceEl = document.getElementById('qp_mrp_price');
-    if (mPriceEl) mPriceEl.value = mPrice.toFixed(2);
+    // Check if already in cart
+    const existing = qp_cart.find(item => item.id === productId);
+    if (existing) {
+        existing.ctnQty = (existing.ctnQty || 0) + 1;
+        qp_syncItemTotal(qp_cart.indexOf(existing));
+    } else {
+        const expDate = new Date();
+        expDate.setFullYear(expDate.getFullYear() + 1);
+        const batchNo = `BT-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${Math.floor(1000 + Math.random()*9000)}`;
 
-    const ctnQty = document.getElementById('qp_ctn_qty');
-    if (ctnQty) ctnQty.value = '0';
-    const loosePcs = document.getElementById('qp_loose_pcs');
-    if (loosePcs) loosePcs.value = '0';
-    const paidPcs = document.getElementById('qp_paid_pcs');
-    if (paidPcs) paidPcs.value = '0';
-    const freePcs = document.getElementById('qp_free_pcs');
-    if (freePcs) freePcs.value = '0';
+        qp_cart.push({
+            id: p.Product_ID,
+            name: p.Product_Name,
+            packSize: packSize,
+            batch: batchNo,
+            expiry: (p.Expiry_Date ? p.Expiry_Date.split('T')[0] : expDate.toISOString().split('T')[0]),
+            ctnQty: 1,
+            loosePcs: 0,
+            freeQty: 0,
+            paidQty: packSize,
+            inboundStk: packSize,
+            unitCost: uCost,
+            ctnCost: cCost,
+            salePrice: sPrice,
+            mrpPrice: mPrice,
+            total: Math.round(packSize * uCost)
+        });
+    }
 
+    const sInp = document.getElementById('qp_search_input');
+    if (sInp) sInp.value = '';
     const dd = document.getElementById('qp_results');
     if (dd) dd.style.display = 'none';
 
-    if (ctnQty) {
-        ctnQty.focus();
-        ctnQty.select();
-    }
-};
-
-// CTN & PCS recalculation handlers
-window.qp_onCtnChange = function() {
-    const packSize = parseInt(document.getElementById('qp_selected_upc')?.value) || 1;
-    const ctn = parseFloat(document.getElementById('qp_ctn_qty')?.value) || 0;
-    const loose = parseFloat(document.getElementById('qp_loose_pcs')?.value) || 0;
-    const paid = (ctn * packSize) + loose;
-    const paidEl = document.getElementById('qp_paid_pcs');
-    if (paidEl) paidEl.value = paid;
-};
-
-window.qp_onLooseChange = function() {
-    window.qp_onCtnChange();
-};
-
-window.qp_onPaidPcsChange = function() {
-    const packSize = parseInt(document.getElementById('qp_selected_upc')?.value) || 1;
-    const paid = parseFloat(document.getElementById('qp_paid_pcs')?.value) || 0;
-    const ctnEl = document.getElementById('qp_ctn_qty');
-    const looseEl = document.getElementById('qp_loose_pcs');
-    if (packSize > 1) {
-        if (ctnEl) ctnEl.value = Math.floor(paid / packSize);
-        if (looseEl) looseEl.value = Math.round(paid % packSize);
-    } else {
-        if (ctnEl) ctnEl.value = paid;
-        if (looseEl) looseEl.value = 0;
-    }
-};
-
-window.qp_onFreePcsChange = function() {
-    // Free PCS contributes directly to inbound stock
-};
-
-window.qp_onCtnCostChange = function() {
-    const packSize = parseInt(document.getElementById('qp_selected_upc')?.value) || 1;
-    const cCost = parseFloat(document.getElementById('qp_ctn_cost')?.value) || 0;
-    const uCost = packSize > 0 ? (cCost / packSize) : cCost;
-    const uCostEl = document.getElementById('qp_unit_cost');
-    if (uCostEl) uCostEl.value = uCost.toFixed(2);
-};
-
-window.qp_onUnitCostChange = function() {
-    const packSize = parseInt(document.getElementById('qp_selected_upc')?.value) || 1;
-    const uCost = parseFloat(document.getElementById('qp_unit_cost')?.value) || 0;
-    const cCost = uCost * packSize;
-    const cCostEl = document.getElementById('qp_ctn_cost');
-    if (cCostEl) cCostEl.value = cCost.toFixed(2);
-};
-
-window.qp_addItem = function() {
-    const prodId = document.getElementById('qp_selected_prod_id')?.value;
-    const prodName = document.getElementById('qp_search_input')?.value?.trim();
-    if (!prodId || !prodName) {
-        return showAlertModal("Validation", "Please select a product from the search list first.");
-    }
-
-    const paid = parseFloat(document.getElementById('qp_paid_pcs')?.value) || 0;
-    const free = parseFloat(document.getElementById('qp_free_pcs')?.value) || 0;
-    const inboundStk = paid + free;
-    if (inboundStk <= 0) {
-        return showAlertModal("Validation", "Please enter a valid received quantity (CTN Qty, Loose PCS, or Paid PCS).");
-    }
-
-    const expiry = document.getElementById('qp_expiry_input')?.value;
-    if (!expiry) {
-        return showAlertModal("Validation", "Please specify an Expiry Date for this inbound product batch.");
-    }
-
-    let batch = document.getElementById('qp_batch_input')?.value?.trim();
-    if (!batch) {
-        batch = `BT-${Date.now().toString().slice(-4)}`;
-    }
-
-    const packSize = parseInt(document.getElementById('qp_selected_upc')?.value) || 1;
-    const ctnQty = parseFloat(document.getElementById('qp_ctn_qty')?.value) || 0;
-    const loosePcs = parseFloat(document.getElementById('qp_loose_pcs')?.value) || 0;
-    const unitCost = parseFloat(document.getElementById('qp_unit_cost')?.value) || 0;
-    const ctnCost = parseFloat(document.getElementById('qp_ctn_cost')?.value) || 0;
-    const sale = parseFloat(document.getElementById('qp_sale_price')?.value) || 0;
-    const mrp = parseFloat(document.getElementById('qp_mrp_price')?.value) || 0;
-    const lineTotal = paid * unitCost;
-
-    qp_cart.push({
-        id: prodId,
-        name: prodName,
-        batch: batch,
-        expiry: expiry,
-        paidQty: paid,
-        freeQty: free,
-        inboundStk: inboundStk,
-        packSize: packSize,
-        ctnQty: ctnQty,
-        loosePcs: loosePcs,
-        unitCost: unitCost,
-        ctnCost: ctnCost,
-        salePrice: sale,
-        mrpPrice: mrp,
-        total: lineTotal
-    });
-
     qp_renderCart();
-    qp_resetEntryFields();
-
-    const searchInp = document.getElementById('qp_search_input');
-    if (searchInp) searchInp.focus();
 };
+
+window.stepQpCtn = function(idx, delta) {
+    if (!qp_cart[idx]) return;
+    const cur = parseInt(qp_cart[idx].ctnQty) || 0;
+    qp_cart[idx].ctnQty = Math.max(0, cur + delta);
+    qp_syncItemTotal(idx);
+    qp_renderCart();
+};
+
+window.stepQpLoose = function(idx, delta) {
+    if (!qp_cart[idx]) return;
+    const cur = parseInt(qp_cart[idx].loosePcs) || 0;
+    qp_cart[idx].loosePcs = Math.max(0, cur + delta);
+    qp_syncItemTotal(idx);
+    qp_renderCart();
+};
+
+window.stepQpFree = function(idx, delta) {
+    if (!qp_cart[idx]) return;
+    const cur = parseInt(qp_cart[idx].freeQty) || 0;
+    qp_cart[idx].freeQty = Math.max(0, cur + delta);
+    qp_syncItemTotal(idx);
+    qp_renderCart();
+};
+
+window.updateQpCtnQty = function(idx, val, isTyping = false) {
+    if (!qp_cart[idx]) return;
+    qp_cart[idx].ctnQty = Math.max(0, parseInt(val) || 0);
+    qp_syncItemTotal(idx);
+    if (isTyping) qp_calculateTotals();
+    else qp_renderCart();
+};
+
+window.updateQpLooseQty = function(idx, val, isTyping = false) {
+    if (!qp_cart[idx]) return;
+    qp_cart[idx].loosePcs = Math.max(0, parseInt(val) || 0);
+    qp_syncItemTotal(idx);
+    if (isTyping) qp_calculateTotals();
+    else qp_renderCart();
+};
+
+window.updateQpFreeQty = function(idx, val, isTyping = false) {
+    if (!qp_cart[idx]) return;
+    qp_cart[idx].freeQty = Math.max(0, parseInt(val) || 0);
+    qp_syncItemTotal(idx);
+    if (isTyping) qp_calculateTotals();
+    else qp_renderCart();
+};
+
+window.qp_updateCost = function(idx, val) {
+    if (!qp_cart[idx]) return;
+    qp_cart[idx].unitCost = Math.max(0, parseFloat(val) || 0);
+    qp_syncItemTotal(idx);
+    qp_calculateTotals();
+};
+
+window.qp_updateBatch = function(idx, val) {
+    if (!qp_cart[idx]) return;
+    qp_cart[idx].batch = val;
+};
+
+window.qp_updateExpiry = function(idx, val) {
+    if (!qp_cart[idx]) return;
+    qp_cart[idx].expiry = val;
+};
+
+function qp_syncItemTotal(idx) {
+    const item = qp_cart[idx];
+    if (!item) return;
+    const upc = Math.max(1, parseInt(item.packSize) || 1);
+    item.paidQty = ((parseInt(item.ctnQty) || 0) * upc) + (parseInt(item.loosePcs) || 0);
+    item.inboundStk = item.paidQty + (parseInt(item.freeQty) || 0);
+    item.total = Math.round(item.paidQty * (parseFloat(item.unitCost) || 0));
+}
 
 window.qp_removeItem = function(idx) {
     qp_cart.splice(idx, 1);
@@ -2318,58 +2266,137 @@ window.qp_removeItem = function(idx) {
 };
 
 window.qp_clearCart = function() {
-    if (qp_cart.length && !confirm("Are you sure you want to clear all added items?")) {
-        return;
-    }
     qp_cart = [];
     qp_renderCart();
 };
 
 window.qp_renderCart = function() {
-    const tbody = document.getElementById('qp_items_table_body');
-    if (!tbody) return;
+    const container = document.getElementById('quickPurchCartItems');
+    if (!container) return;
 
     if (!qp_cart.length) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="9" class="text-center" style="padding: 28px; color: #94a3b8; font-size: 0.88rem;">
-                    No products added to this purchase yet.
-                </td>
-            </tr>`;
-        const totalEl = document.getElementById('qp_grand_total');
-        if (totalEl) totalEl.textContent = '0';
+        container.innerHTML = `
+            <div style="background:#ffffff; border:1.5px dashed #cbd5e1; border-radius:12px; padding:26px 16px; text-align:center; color:#94a3b8; margin-bottom:12px;">
+                <i class="fas fa-truck-loading fa-2x" style="opacity:0.35; margin-bottom:8px; display:block; color:#10b981;"></i>
+                <div style="font-weight:700; color:#475569;">Purchase Cart is Empty</div>
+                <div style="font-size:0.78rem; margin-top:2px;">Search and add products above to receive stock.</div>
+            </div>`;
+        qp_calculateTotals();
         return;
     }
 
-    tbody.innerHTML = qp_cart.map((item, idx) => {
-        const qtyDisplay = (item.packSize > 1 && item.ctnQty > 0)
-            ? `<strong>${item.paidQty}</strong> <span style="font-size:0.75rem; color:#64748b;">(${item.ctnQty} CTN${item.loosePcs > 0 ? ' + ' + item.loosePcs : ''})</span>`
-            : `<strong>${item.paidQty}</strong>`;
+    container.innerHTML = qp_cart.map((item, idx) => {
+        const upc = Math.max(1, parseInt(item.packSize) || 1);
+        const ctnQty = parseInt(item.ctnQty) || 0;
+        const loosePcs = parseInt(item.loosePcs) || 0;
+        const freeQty = parseInt(item.freeQty) || 0;
+        const paidPcs = (ctnQty * upc) + loosePcs;
+        const unitCost = parseFloat(item.unitCost) || 0;
+        const lineTotal = Math.round(paidPcs * unitCost);
 
         return `
-            <tr>
-                <td>
-                    <strong style="color:#1e293b;">${item.name}</strong><br>
-                    <small style="color:#64748b;">${item.id} | Pack: ${item.packSize}</small>
-                </td>
-                <td><span class="badge badge-info" style="font-size:0.78rem;">${item.batch}</span></td>
-                <td style="font-size:0.85rem; color:#475569;">${item.expiry || '-'}</td>
-                <td style="text-align:center;">${qtyDisplay}</td>
-                <td style="text-align:center;"><span style="color:#16a34a; font-weight:700; background:#f0fdf4; border:1px solid #bbf7d0; padding:2px 8px; border-radius:12px;">${item.freeQty || 0}</span></td>
-                <td style="text-align:center;"><strong style="color:#1e293b; font-size:0.95rem;">${item.inboundStk}</strong></td>
-                <td style="text-align:right; font-weight:600;">৳ ${formatBD(item.unitCost, 2)}</td>
-                <td style="text-align:right; font-weight:800; color:#10b981; font-size:0.95rem;">৳ ${formatBD(item.total, 2)}</td>
-                <td style="text-align:center;">
-                    <button type="button" class="btn-icon btn-delete" onclick="qp_removeItem(${idx})" title="Remove">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </td>
-            </tr>`;
+        <div class="qs-item-card" style="border-left: 4px solid #10b981;">
+            <div class="qs-card-top-row">
+                <div class="qs-card-title">${escapeHtml(item.name)}</div>
+                <button type="button" class="qs-trash-btn" onclick="qp_removeItem(${idx})" title="Remove">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+
+            <!-- Mid Row: Pack Size, Cost, Total -->
+            <div class="qs-card-mid-row" style="flex-wrap: wrap; gap: 4px;">
+                <div class="qs-card-mid-left" style="flex-wrap: wrap;">
+                    <span style="color:#059669; font-weight:700;">1 CTN = ${upc} pcs</span>
+                    <span style="color:#cbd5e1;">|</span>
+                    <span>Cost: ৳<input type="number" step="0.01" value="${unitCost.toFixed(2)}" oninput="qp_updateCost(${idx}, this.value)" style="width:65px; height:22px; padding:1px 4px; font-size:0.78rem; border:1px solid #cbd5e1; border-radius:4px; font-weight:700; color:#0f172a;"></span>
+                    <span class="qs-pcs-badge" style="background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0;">= ${paidPcs + freeQty} pcs</span>
+                </div>
+                <div class="qs-card-price-total" style="color: #059669;">৳ ${formatBD(lineTotal)}</div>
+            </div>
+
+            <!-- Batch & Expiry Inputs -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                <div>
+                    <label style="display:block; font-size:0.68rem; font-weight:700; color:#64748b; margin-bottom:2px;">BATCH NO</label>
+                    <input type="text" value="${escapeHtml(item.batch || '')}" placeholder="Batch..." onchange="qp_updateBatch(${idx}, this.value)" style="width:100%; height:28px; font-size:0.78rem; padding:0 8px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
+                </div>
+                <div>
+                    <label style="display:block; font-size:0.68rem; font-weight:700; color:#64748b; margin-bottom:2px;">EXPIRY DATE</label>
+                    <input type="date" value="${item.expiry || ''}" onchange="qp_updateExpiry(${idx}, this.value)" style="width:100%; height:28px; font-size:0.78rem; padding:0 6px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
+                </div>
+            </div>
+
+            <!-- Steppers Row -->
+            <div class="qs-steppers-row">
+                <div class="qs-stepper-group">
+                    <span class="qs-stepper-label" style="color:#059669;">CTN:</span>
+                    <div class="qs-stepper-box">
+                        <button type="button" class="qs-btn-sub" onclick="stepQpCtn(${idx}, -1)">-</button>
+                        <input type="number" class="qs-step-input" value="${ctnQty}" min="0" oninput="updateQpCtnQty(${idx}, this.value, true)" onchange="qp_renderCart()">
+                        <button type="button" class="qs-btn-add" onclick="stepQpCtn(${idx}, 1)">+</button>
+                    </div>
+                </div>
+                <div class="qs-stepper-group">
+                    <span class="qs-stepper-label" style="color:#64748b;">PCS:</span>
+                    <div class="qs-stepper-box">
+                        <button type="button" class="qs-btn-sub" onclick="stepQpLoose(${idx}, -1)">-</button>
+                        <input type="number" class="qs-step-input" value="${loosePcs}" min="0" oninput="updateQpLooseQty(${idx}, this.value, true)" onchange="qp_renderCart()">
+                        <button type="button" class="qs-btn-add" onclick="stepQpLoose(${idx}, 1)">+</button>
+                    </div>
+                </div>
+                <div class="qs-stepper-group">
+                    <span class="qs-stepper-label" style="color:#15803d;">FREE:</span>
+                    <div class="qs-stepper-box">
+                        <button type="button" class="qs-btn-sub" onclick="stepQpFree(${idx}, -1)">-</button>
+                        <input type="number" class="qs-step-input" value="${freeQty}" min="0" oninput="updateQpFreeQty(${idx}, this.value, true)" onchange="qp_renderCart()">
+                        <button type="button" class="qs-btn-add" onclick="stepQpFree(${idx}, 1)">+</button>
+                    </div>
+                </div>
+            </div>
+        </div>`;
     }).join('');
 
-    const grandTotal = qp_cart.reduce((sum, item) => sum + (parseFloat(item.total) || 0), 0);
-    const totalEl = document.getElementById('qp_grand_total');
-    if (totalEl) totalEl.textContent = formatBD(grandTotal, 2);
+    qp_calculateTotals();
+};
+
+window.qp_calculateTotals = function() {
+    let totalCtn = 0;
+    let totalPcs = 0;
+    let grandTotal = 0;
+
+    qp_cart.forEach(item => {
+        const upc = Math.max(1, parseInt(item.packSize) || 1);
+        const paidPcs = ((parseInt(item.ctnQty) || 0) * upc) + (parseInt(item.loosePcs) || 0);
+        const freePcs = parseInt(item.freeQty) || 0;
+        totalCtn += (parseInt(item.ctnQty) || 0);
+        totalPcs += (paidPcs + freePcs);
+        grandTotal += Math.round(paidPcs * (parseFloat(item.unitCost) || 0));
+    });
+
+    const ctnSummaryEl = document.getElementById('qp_summary_ctn');
+    if (ctnSummaryEl) ctnSummaryEl.value = `${formatBD(totalCtn)} CTN`;
+    const pcsSummaryEl = document.getElementById('qp_summary_pcs');
+    if (pcsSummaryEl) pcsSummaryEl.value = `${formatBD(totalPcs)} pcs`;
+
+    const totalTextEl = document.getElementById('qp_total_text');
+    if (totalTextEl) totalTextEl.textContent = formatBD(grandTotal);
+
+    const paidInp = document.getElementById('qp_paid_amount');
+    const paidVal = parseFloat(paidInp?.value) || 0;
+    const dueEl = document.getElementById('qp_due_amount');
+    if (dueEl) dueEl.value = String(Math.max(0, grandTotal - paidVal));
+};
+
+window.qp_fullPaid = function() {
+    let grandTotal = 0;
+    qp_cart.forEach(item => {
+        const upc = Math.max(1, parseInt(item.packSize) || 1);
+        const paidPcs = ((parseInt(item.ctnQty) || 0) * upc) + (parseInt(item.loosePcs) || 0);
+        grandTotal += Math.round(paidPcs * (parseFloat(item.unitCost) || 0));
+    });
+    const paidInp = document.getElementById('qp_paid_amount');
+    if (paidInp) paidInp.value = grandTotal;
+    qp_calculateTotals();
 };
 
 let isQpProcessing = false;
@@ -2394,28 +2421,22 @@ window.qp_submit = function() {
     }
 
     const pDate = document.getElementById('qp_purchase_date')?.value || new Date().toISOString().split('T')[0];
+    const invoiceNo = document.getElementById('qp_invoice_no')?.value?.trim();
 
     const submitBtn = document.getElementById('qp_btn_submit');
     const origHtml = submitBtn ? submitBtn.innerHTML : '';
 
-    const unlockQpBtn = () => {
-        isQpProcessing = false;
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = origHtml || '<i class="fas fa-save"></i> Save & Receive Stock';
-        }
-    };
-
     isQpProcessing = true;
     if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving & Receiving Stock...';
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
     }
 
     const payload = {
         warehouseId: whId,
         supplierId: suppId,
         date: pDate,
+        invoiceNo: invoiceNo,
         items: qp_cart.map(i => ({
             id: i.id,
             name: i.name,
@@ -2432,18 +2453,33 @@ window.qp_submit = function() {
 
     google.script.run
         .withSuccessHandler(res => {
-            unlockQpBtn();
+            isQpProcessing = false;
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = origHtml || 'CONFIRM & RECEIVE';
+            }
             if (res && res.success) {
-                showAlertModal("Purchase Inbound Saved", `Purchase order ${res.purchaseId} recorded successfully! All CTN & loose units received into warehouse stock.`);
-                closeQuickPurchase();
+                const formCont = document.getElementById('qp_form_container');
+                const succScreen = document.getElementById('qp_success_screen');
+                const poNoEl = document.getElementById('qp_success_po_no');
+                if (poNoEl) poNoEl.textContent = res.purchaseId || invoiceNo || 'PO-' + Date.now().toString().slice(-4);
+                if (formCont) formCont.style.display = 'none';
+                if (succScreen) succScreen.style.display = 'flex';
+
                 loadPurchasesData();
                 if (window.loadDashboardData) loadDashboardData();
+                if (window.loadWarehouseInfoData) loadWarehouseInfoData();
+                if (window.loadInventoryData) loadInventoryData();
             } else {
                 showAlertModal("Error", (res && res.error) || "Failed to process purchase entry.");
             }
         })
         .withFailureHandler(err => {
-            unlockQpBtn();
+            isQpProcessing = false;
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = origHtml || 'CONFIRM & RECEIVE';
+            }
             showAlertModal("Error", (err && err.message) ? err.message : "Failed to record purchase.");
         })
         .createBulkPurchase(payload);
@@ -5151,20 +5187,20 @@ window.renderWarehouseInfoView = function(d) {
                         </div>
                     </div>
 
-                    <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 16px;">
-                        <div style="width: 76px; height: 76px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
+                    <div class="wh-summary-breakdown-row">
+                        <div class="wh-summary-donut-wrap">
                             ${generateMiniDonutSvg(categoryBreakdown, 76, 14)}
                         </div>
-                        <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+                        <div class="wh-summary-breakdown-list">
                             ${categoryBreakdown.map(cat => `
-                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem; gap: 8px;">
-                                    <div style="display: flex; align-items: center; gap: 6px; color: #334155; font-weight: 600; white-space: nowrap;">
-                                        <span style="width: 7px; height: 7px; border-radius: 50%; background: ${cat.color}; display: inline-block;"></span>
-                                        <span>${cat.name} (${cat.percentage}%)</span>
+                                <div class="wh-summary-cat-item">
+                                    <div style="display: flex; align-items: center; gap: 6px; color: #334155; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                        <span style="width: 7px; height: 7px; border-radius: 50%; background: ${cat.color}; display: inline-block; flex-shrink: 0;"></span>
+                                        <span style="overflow: hidden; text-overflow: ellipsis;">${cat.name} (${cat.percentage}%)</span>
                                     </div>
                                     <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
                                         <span class="wh-ctn-badge">${formatBD(cat.ctn !== undefined ? cat.ctn : (cat.totalCtn || 0))} CTN</span>
-                                        <span style="font-weight: 700; color: #0f172a; white-space: nowrap; text-align: right; min-width: 80px;">৳${formatBD(cat.value)}</span>
+                                        <span style="font-weight: 700; color: #0f172a; white-space: nowrap; text-align: right; min-width: 75px;">৳${formatBD(cat.value)}</span>
                                     </div>
                                 </div>
                             `).join('')}
@@ -5194,8 +5230,8 @@ window.renderWarehouseInfoView = function(d) {
                         </div>
                     </div>
 
-                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px;">
-                        <div style="min-width: 0; flex-shrink: 0;">
+                    <div class="wh-single-card-body">
+                        <div class="wh-single-card-val">
                             <div style="font-size: 1.25rem; font-weight: 900; color: #0f172a; line-height: 1.15; margin-bottom: 3px; white-space: nowrap;">
                                 ৳ ${formatBD(w.totalValue)}
                             </div>
@@ -5204,15 +5240,15 @@ window.renderWarehouseInfoView = function(d) {
                             </div>
                         </div>
 
-                        <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0; background: #f8fafc; border: 1px solid #f1f5f9; border-radius: 10px; padding: 6px 10px;">
+                        <div class="wh-single-card-catbox">
                             <div style="width: 44px; height: 44px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
                                 ${generateMiniDonutSvg(categories, 44, 7)}
                             </div>
-                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0;">
                                 ${categories.map(c => `
                                     <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.66rem; gap: 6px;">
-                                        <div style="display: flex; align-items: center; gap: 3px; color: #334155; font-weight: 600; white-space: nowrap;">
-                                            <span style="width: 5px; height: 5px; border-radius: 50%; background: ${c.color}; display: inline-block;"></span>
+                                        <div style="display: flex; align-items: center; gap: 3px; color: #334155; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                            <span style="width: 5px; height: 5px; border-radius: 50%; background: ${c.color}; display: inline-block; flex-shrink: 0;"></span>
                                             <span>${c.name} (${c.percentage}%)</span>
                                         </div>
                                         <div style="display: flex; align-items: center; gap: 5px; flex-shrink: 0;">
@@ -5258,6 +5294,8 @@ function renderWhCategoryBarChart(categories, warehouses) {
         categoryPercentage: 0.75
     }));
 
+    const isSmallScreen = typeof window !== 'undefined' && window.innerWidth < 500;
+
     whCategoryBarChartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -5275,8 +5313,8 @@ function renderWhCategoryBarChart(categories, warehouses) {
                         boxWidth: 10,
                         boxHeight: 10,
                         usePointStyle: false,
-                        font: { size: 11, family: 'Inter, Segoe UI, sans-serif', weight: '600' },
-                        padding: 12,
+                        font: { size: isSmallScreen ? 10 : 11, family: 'Inter, Segoe UI, sans-serif', weight: '600' },
+                        padding: isSmallScreen ? 8 : 12,
                         color: '#334155'
                     }
                 },
@@ -5291,15 +5329,19 @@ function renderWhCategoryBarChart(categories, warehouses) {
             scales: {
                 x: {
                     grid: { display: false },
-                    ticks: { font: { size: 11, weight: '600' }, color: '#475569' }
+                    ticks: {
+                        font: { size: isSmallScreen ? 9.5 : 11, weight: '600' },
+                        color: '#475569',
+                        maxRotation: isSmallScreen ? 30 : 0
+                    }
                 },
                 y: {
                     min: 0,
-                    max: 200000,
+                    max: 1000000,
                     ticks: {
-                        stepSize: 20000,
+                        stepSize: 100000,
                         callback: val => val.toLocaleString('en-US'),
-                        font: { size: 10 },
+                        font: { size: isSmallScreen ? 9 : 10 },
                         color: '#64748b'
                     },
                     grid: { color: '#f1f5f9' }
@@ -5321,7 +5363,7 @@ function renderWhValueSharePieChart(warehouses) {
     const dataVals = warehouses.map(w => w.totalValue || 0);
     const bgColors = warehouses.map(w => w.shareColor || w.badgeColor);
 
-    // Custom Callout Plugin to replicate the exact labels from the screenshot
+    // Custom Callout Plugin: identical to screenshot on desktop, intelligently clamped on mobile
     const calloutPlugin = {
         id: 'whValueCallouts',
         afterDraw(chart) {
@@ -5330,6 +5372,9 @@ function renderWhValueSharePieChart(warehouses) {
             if (!meta || !meta.data) return;
 
             const total = dataVals.reduce((a, b) => a + b, 0);
+            const chartWidth = chart.width;
+            const isNarrow = chartWidth < 480;
+            const isVeryNarrow = chartWidth < 360;
 
             meta.data.forEach((arc, i) => {
                 const w = warehouses[i];
@@ -5344,24 +5389,47 @@ function renderWhValueSharePieChart(warehouses) {
 
                 chartCtx.save();
                 chartCtx.fillStyle = '#ffffff';
-                chartCtx.font = 'bold 11px Inter, Segoe UI, sans-serif';
+                chartCtx.font = isNarrow ? 'bold 10px Inter, Segoe UI, sans-serif' : 'bold 11px Inter, Segoe UI, sans-serif';
                 chartCtx.textAlign = 'center';
                 chartCtx.textBaseline = 'middle';
-                if (percent >= 5) {
+                if (percent >= (isNarrow ? 8 : 5)) {
                     chartCtx.fillText(`${percent}%`, insideX, insideY);
                 }
 
                 // 2. Draw Callout pointer line and label outside
                 const outerX = arc.x + Math.cos(angle) * arc.outerRadius;
                 const outerY = arc.y + Math.sin(angle) * arc.outerRadius;
-                const elbowDist = arc.outerRadius + 18;
+                const elbowDist = arc.outerRadius + (isNarrow ? 12 : 18);
                 const elbowX = arc.x + Math.cos(angle) * elbowDist;
                 const elbowY = arc.y + Math.sin(angle) * elbowDist;
 
                 const isRight = Math.cos(angle) >= 0;
-                const lineEndDist = isRight ? 26 : -26;
-                const endX = elbowX + lineEndDist;
+                const lineDist = isNarrow ? (isVeryNarrow ? 12 : 18) : 26;
+                const lineEndDist = isRight ? lineDist : -lineDist;
+                let endX = elbowX + lineEndDist;
                 const endY = elbowY;
+
+                // Measure text
+                const nameFont = isNarrow ? 'bold 9.5px Inter, Segoe UI, sans-serif' : 'bold 10.5px Inter, Segoe UI, sans-serif';
+                const valFont = isNarrow ? 'bold 9px Inter, Segoe UI, sans-serif' : 'bold 10px Inter, Segoe UI, sans-serif';
+                const ctnFont = isNarrow ? '600 8.5px Inter, Segoe UI, sans-serif' : '600 9px Inter, Segoe UI, sans-serif';
+
+                chartCtx.font = nameFont;
+                const nameWidth = chartCtx.measureText(w.name).width;
+                chartCtx.font = valFont;
+                const valWidth = chartCtx.measureText(`৳${formatBD(w.totalValue)}`).width;
+                const maxLabelWidth = Math.max(nameWidth, valWidth);
+
+                // Smart clamping so no labels bleed off canvas on mobile
+                if (isRight) {
+                    if (endX + 6 + maxLabelWidth > chartWidth - 4) {
+                        endX = Math.max(elbowX + 2, chartWidth - 4 - maxLabelWidth - 6);
+                    }
+                } else {
+                    if (endX - 6 - maxLabelWidth < 4) {
+                        endX = Math.min(elbowX - 2, 4 + maxLabelWidth + 6);
+                    }
+                }
 
                 // Draw line
                 chartCtx.beginPath();
@@ -5369,27 +5437,27 @@ function renderWhValueSharePieChart(warehouses) {
                 chartCtx.lineTo(elbowX, elbowY);
                 chartCtx.lineTo(endX, endY);
                 chartCtx.strokeStyle = bgColors[i] || '#94a3b8';
-                chartCtx.lineWidth = 1.5;
+                chartCtx.lineWidth = isNarrow ? 1.2 : 1.5;
                 chartCtx.stroke();
 
                 // Draw text labels
                 chartCtx.textAlign = isRight ? 'left' : 'right';
-                const textX = endX + (isRight ? 6 : -6);
+                const textX = endX + (isRight ? (isNarrow ? 4 : 6) : (isNarrow ? -4 : -6));
 
                 // Warehouse Name
-                chartCtx.font = 'bold 10.5px Inter, Segoe UI, sans-serif';
+                chartCtx.font = nameFont;
                 chartCtx.fillStyle = '#0f172a';
-                chartCtx.fillText(w.name, textX, endY - 14);
+                chartCtx.fillText(w.name, textX, endY - (isNarrow ? 12 : 14));
 
                 // Value in red/brand color
-                chartCtx.font = 'bold 10px Inter, Segoe UI, sans-serif';
+                chartCtx.font = valFont;
                 chartCtx.fillStyle = '#e11d48';
                 chartCtx.fillText(`৳${formatBD(w.totalValue)}`, textX, endY);
 
                 // CTN Count
-                chartCtx.font = '600 9px Inter, Segoe UI, sans-serif';
+                chartCtx.font = ctnFont;
                 chartCtx.fillStyle = '#64748b';
-                chartCtx.fillText(`CTN: ${formatBD(w.totalCtn)}`, textX, endY + 12);
+                chartCtx.fillText(`CTN: ${formatBD(w.totalCtn)}`, textX, endY + (isNarrow ? 10 : 12));
 
                 chartCtx.restore();
             });
@@ -5411,11 +5479,15 @@ function renderWhValueSharePieChart(warehouses) {
             responsive: true,
             maintainAspectRatio: false,
             layout: {
-                padding: {
-                    top: 25,
-                    bottom: 25,
-                    left: 70,
-                    right: 70
+                padding: function(context) {
+                    const w = (context && context.chart && context.chart.width) || window.innerWidth;
+                    const isNarrow = w < 480;
+                    return {
+                        top: isNarrow ? 18 : 25,
+                        bottom: isNarrow ? 18 : 25,
+                        left: isNarrow ? 32 : 70,
+                        right: isNarrow ? 32 : 70
+                    };
                 }
             },
             plugins: {

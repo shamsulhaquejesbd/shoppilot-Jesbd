@@ -235,7 +235,7 @@
                             <div class="chart-header"><h3><i class="fas fa-bolt"></i> Quick Actions</h3></div>
                             <div class="action-buttons">
                                 <button class="btn-action qa-sale" onclick="openQuickSale()"><i class="fas fa-cart-plus"></i><span>Quick Sale</span></button>
-                                <button class="btn-action qa-purchase" onclick="openQuickPurchase()"><i class="fas fa-truck"></i><span>Quick Purchase</span></button>
+                                <button class="btn-action qa-purchase" onclick="openQuickPurchase()" style="background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;"><i class="fas fa-truck-loading" style="color: #059669;"></i><span>⚡ Quick Purchase</span></button>
                                 <button class="btn-action qa-stock" onclick="switchAppView('inventory')"><i class="fas fa-boxes"></i><span>Stock</span></button>
                                 <button class="btn-action qa-report" onclick="switchAppView('reports')"><i class="fas fa-file-export"></i><span>Reports</span></button>
                             </div>
@@ -281,8 +281,8 @@
                 </section>
 
                 <!-- VIEW: WAREHOUSE INFO & ANALYTICS -->
-                <section id="view_warehouse_info" class="view-section">
-                    <div class="page-header" style="margin-bottom: 1.5rem;">
+                <section id="view_warehouse_info" class="view-section" style="width: 100%; max-width: 100%; box-sizing: border-box;">
+                    <div class="page-header wh-page-header" style="margin-bottom: 1.5rem;">
                         <div style="display: flex; align-items: center; gap: 14px;">
                             <span style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; background: #3b82f6; color: white; border-radius: 10px; font-size: 1.35rem; flex-shrink: 0; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.25);">
                                 <i class="fas fa-warehouse"></i>
@@ -292,7 +292,7 @@
                                 <p class="subtitle" style="margin: 4px 0 0; color: #64748b; font-size: 0.88rem;">Inventory valuation in cost price, stock levels, and category breakdown</p>
                             </div>
                         </div>
-                        <button class="btn btn-primary" onclick="loadWarehouseInfoData()" style="background: #3b82f6; border: none; border-radius: 8px; padding: 10px 18px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);">
+                        <button class="btn btn-primary wh-refresh-btn" onclick="loadWarehouseInfoData()" style="background: #3b82f6; border: none; border-radius: 8px; padding: 10px 18px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);">
                             <i class="fas fa-sync-alt"></i> Refresh Data
                         </button>
                     </div>
@@ -314,7 +314,7 @@
                                 <i class="fas fa-chart-bar" style="color: #10b981; font-size: 1.05rem;"></i>
                                 <h3>Stock Level by Category & Warehouse</h3>
                             </div>
-                            <div style="position: relative; height: 320px; width: 100%;">
+                            <div style="position: relative; height: 320px; width: 100%; min-width: 0; overflow: hidden;">
                                 <canvas id="whCategoryBarChart"></canvas>
                             </div>
                         </div>
@@ -323,7 +323,7 @@
                                 <i class="fas fa-chart-pie" style="color: #f97316; font-size: 1.05rem;"></i>
                                 <h3>Warehouse Value Share</h3>
                             </div>
-                            <div style="position: relative; height: 320px; width: 100%; display: flex; align-items: center; justify-content: center;">
+                            <div style="position: relative; height: 320px; width: 100%; min-width: 0; display: flex; align-items: center; justify-content: center; overflow: hidden;">
                                 <canvas id="whValueSharePieChart"></canvas>
                             </div>
                         </div>
@@ -331,21 +331,21 @@
                 </section>
 
                 <!-- VIEW: INVENTORY -->
-                <section id="view_inventory" class="view-section">
-                    <div class="page-header">
+                <section id="view_inventory" class="view-section" style="width: 100%; max-width: 100%; box-sizing: border-box;">
+                    <div class="page-header inv-page-header">
                         <div>
                             <h1><i class="fas fa-box-open" style="color: #4361ee;"></i> Inventory Stock Levels</h1>
                             <p class="subtitle">Monitor real stock balance matrix across warehouses and manage stock transfers</p>
                         </div>
-                        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                            <button type="button" id="tabBtnInvMatrix" class="btn btn-primary btn-sm" onclick="switchInvSubTab('matrix')" style="font-weight: 700; border-radius: 8px; padding: 8px 14px; display: inline-flex; align-items: center; gap: 6px;">
-                                <i class="fas fa-th"></i> Stock Balance Matrix
+                        <div class="inv-header-actions">
+                            <button type="button" id="tabBtnInvMatrix" class="btn btn-primary btn-sm inv-action-btn" onclick="switchInvSubTab('matrix')">
+                                <i class="fas fa-th"></i> <span>Stock Balance Matrix</span>
                             </button>
-                            <button type="button" id="tabBtnInvTransfers" class="btn btn-secondary btn-sm" onclick="switchInvSubTab('transfers')" style="font-weight: 700; border-radius: 8px; padding: 8px 14px; display: inline-flex; align-items: center; gap: 6px;">
-                                <i class="fas fa-exchange-alt"></i> Transfer Stock & History
+                            <button type="button" id="tabBtnInvTransfers" class="btn btn-secondary btn-sm inv-action-btn" onclick="switchInvSubTab('transfers')">
+                                <i class="fas fa-exchange-alt"></i> <span>Transfer Stock & History</span>
                             </button>
-                            <button class="btn btn-primary btn-sm" onclick="loadInventoryData()" style="font-weight: 700; border-radius: 8px; padding: 8px 14px; display: inline-flex; align-items: center; gap: 6px;">
-                                <i class="fas fa-sync-alt"></i> Refresh Stock
+                            <button type="button" class="btn btn-primary btn-sm inv-action-btn" onclick="loadInventoryData()">
+                                <i class="fas fa-sync-alt"></i> <span>Refresh Stock</span>
                             </button>
                         </div>
                     </div>
@@ -643,13 +643,14 @@
 
                     <!-- PURCHASE HISTORY SECTION -->
                     <div class="chart-card">
-                        <div class="chart-header">
-                            <div>
-                                <h3 style="font-weight: 800; color: #1e293b;"><i class="fas fa-history"></i> Purchase Inbound History</h3>
-                                <p class="subtitle" style="margin: 0; font-size: 0.8rem; color: #64748b;">All previous supplier purchase receipts and warehouse logs</p>
+                        <div class="chart-header purch-history-header">
+                            <div class="purch-history-title-wrap">
+                                <h3 class="purch-history-title"><i class="fas fa-history" style="color: #4361ee;"></i> Purchase Inbound History</h3>
+                                <p class="purch-history-subtitle">All previous supplier purchase receipts and warehouse logs</p>
                             </div>
-                            <div style="display: flex; gap: 10px;">
-                                <input type="text" id="purchHistorySearch" class="form-control" placeholder="Search by ID, supplier, product..." oninput="filterPurchasesHistory(this.value)" style="width: 260px;">
+                            <div class="purch-history-search-wrap">
+                                <i class="fas fa-search purch-history-search-icon"></i>
+                                <input type="text" id="purchHistorySearch" class="form-control purch-history-search-input" placeholder="Search by ID, supplier, product..." oninput="filterPurchasesHistory(this.value)">
                             </div>
                         </div>
                         <div class="table-responsive">
@@ -781,18 +782,21 @@
                 </section>
 
                 <!-- VIEW: CUSTOMERS -->
-                <section id="view_customers" class="view-section">
-                    <div class="page-header">
+                <section id="view_customers" class="view-section" style="width: 100%; max-width: 100%; box-sizing: border-box;">
+                    <div class="page-header customer-page-header">
                         <div>
                             <h1><i class="fas fa-users"></i> Customer Management</h1>
                             <p class="subtitle">Client dues, contact books, and bulk payments</p>
                         </div>
-                        <div style="display: flex; gap: 10px;">
-                            <input type="text" id="customerSearchInput" class="form-control" placeholder="Search customer..." oninput="handleCustomerSearch()" style="width: 250px;">
-                            <button class="btn btn-primary" onclick="openCustomerModal()"><i class="fas fa-user-plus"></i> Add Customer</button>
+                        <div class="customer-header-actions">
+                            <div class="customer-search-wrap">
+                                <i class="fas fa-search customer-search-icon"></i>
+                                <input type="text" id="customerSearchInput" class="form-control customer-search-input" placeholder="Search customer..." oninput="handleCustomerSearch()">
+                            </div>
+                            <button class="btn btn-primary btn-add-customer" onclick="openCustomerModal()"><i class="fas fa-user-plus"></i> <span>Add Customer</span></button>
                         </div>
                     </div>
-                    <div class="stats-grid" id="customerStatsGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                    <div class="stats-grid" id="customerStatsGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-bottom: 24px; min-width: 0; width: 100%; box-sizing: border-box;">
                         <div class="stat-card" style="border-left: 4px solid #4361ee; background: white; padding: 18px 20px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); cursor: pointer;" onclick="filterCustomersByType('')" title="Click to show all customers">
                             <div style="color:#64748b; font-weight:700; font-size: 0.82rem; display: flex; align-items: center; gap: 6px;">
                                 <i class="fas fa-users" style="color:#4361ee;"></i> Total Customers
@@ -1148,141 +1152,111 @@
         </div>
     </div>
 
-    <!-- Quick Purchase Modal (Multi-Product Purchase Inbound) -->
+    <!-- Quick Purchase Modal (Mobile App Interface) -->
     <div id="quickPurchaseModule" class="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.65); z-index:1000; align-items:center; justify-content:center; backdrop-filter:blur(3px);">
-        <div class="modal-content" style="max-width: 930px; width: 95%; max-height: 92vh; background: #ffffff; border-radius: 12px; overflow: hidden; padding: 0; border: none; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35); display: flex; flex-direction: column;">
-            <!-- Modal Header -->
-            <div style="background: #3b82f6; color: white; padding: 13px 20px; display: flex; align-items: center; justify-content: space-between;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <i class="fas fa-truck-loading" style="font-size: 1.15rem;"></i>
-                    <h3 style="margin: 0; font-size: 1.05rem; font-weight: 700; color: white;">Multi-Product Purchase Inbound</h3>
-                </div>
-                <button type="button" onclick="closeQuickPurchase()" style="background: none; border: none; color: white; font-size: 1.5rem; line-height: 1; cursor: pointer; padding: 0 4px;">&times;</button>
-            </div>
-
-            <!-- Modal Body Scrollable -->
-            <div style="overflow-y: auto; flex: 1; padding: 0 0 10px 0;">
-                <!-- Top Row: Warehouse, Supplier, Purchase Date -->
-                <div style="padding: 16px 20px 10px 20px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
-                    <div>
-                        <label style="display: block; font-size: 0.72rem; font-weight: 800; color: #475569; letter-spacing: 0.5px; margin-bottom: 6px; text-transform: uppercase;">DESTINATION WAREHOUSE</label>
-                        <select id="qp_warehouse_select" class="form-control" style="background: #eff6ff; border: 1.5px solid #bfdbfe; color: #2563eb; font-weight: 700; height: 42px; border-radius: 8px;"></select>
-                    </div>
-                    <div>
-                        <label style="display: block; font-size: 0.72rem; font-weight: 800; color: #475569; letter-spacing: 0.5px; margin-bottom: 6px; text-transform: uppercase;">SUPPLIER</label>
-                        <select id="qp_supplier_select" class="form-control" style="height: 42px; border-radius: 8px; border: 1px solid #cbd5e1; font-weight: 500;"></select>
-                    </div>
-                    <div>
-                        <label style="display: block; font-size: 0.72rem; font-weight: 800; color: #475569; letter-spacing: 0.5px; margin-bottom: 6px; text-transform: uppercase;">PURCHASE DATE</label>
-                        <input type="date" id="qp_purchase_date" class="form-control" style="height: 42px; border-radius: 8px; border: 1px solid #cbd5e1;">
-                    </div>
-                </div>
-
-                <!-- Inbound Product Entry Section -->
-                <div style="margin: 6px 20px 14px 20px; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; background: #ffffff;">
-                    <div style="font-size: 0.78rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 6px; margin-bottom: 12px; letter-spacing: 0.5px; text-transform: uppercase;">
-                        <i class="fas fa-plus-circle" style="color: #10b981; font-size: 1rem;"></i>
-                        <span>INBOUND PRODUCT ENTRY</span>
-                    </div>
-
-                    <!-- Row 1: Product Search, Batch No, Expiry Date -->
-                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; margin-bottom: 12px;">
-                        <div style="position: relative;">
-                            <label style="display: block; font-size: 0.74rem; font-weight: 600; color: #475569; margin-bottom: 4px;">Product Search</label>
-                            <input type="text" id="qp_search_input" class="form-control" placeholder="Type product name/code..." autocomplete="off" oninput="qp_filterProducts(this.value)" style="height: 38px; border-radius: 6px;">
-                            <input type="hidden" id="qp_selected_prod_id">
-                            <input type="hidden" id="qp_selected_upc" value="1">
-                            <div id="qp_results" class="qp-dropdown" style="display:none; position:absolute; top:100%; left:0; right:0; z-index:1050; background:white; border:1px solid #cbd5e1; border-radius:8px; box-shadow:0 10px 25px rgba(0,0,0,0.12); max-height:220px; overflow-y:auto; margin-top:3px;"></div>
-                        </div>
-                        <div>
-                            <label style="display: block; font-size: 0.74rem; font-weight: 600; color: #475569; margin-bottom: 4px;">Batch No</label>
-                            <input type="text" id="qp_batch_input" class="form-control" placeholder="Auto if blank" style="height: 38px; border-radius: 6px;">
-                        </div>
-                        <div>
-                            <label style="display: block; font-size: 0.74rem; font-weight: 600; color: #475569; margin-bottom: 4px;">Expiry Date <span style="color: #ef4444;">*</span></label>
-                            <input type="date" id="qp_expiry_input" class="form-control" style="height: 38px; border-radius: 6px;">
-                        </div>
-                    </div>
-
-                    <!-- Row 2: CTN Qty, Loose PCS, Paid PCS, Free PCS, CTN Cost, Unit Cost, Sale, MRP, Add Button -->
-                    <div style="display: grid; grid-template-columns: 0.85fr 0.85fr 0.85fr 1.05fr 1fr 1fr 0.9fr 0.9fr auto; gap: 8px; align-items: flex-end;">
-                        <div>
-                            <label style="display: block; font-size: 0.72rem; font-weight: 700; color: #1e40af; margin-bottom: 4px;">CTN Qty</label>
-                            <input type="number" id="qp_ctn_qty" class="form-control" value="0" min="0" oninput="qp_onCtnChange()" style="height: 38px; font-weight: 700; text-align: center;">
-                        </div>
-                        <div>
-                            <label style="display: block; font-size: 0.72rem; font-weight: 700; color: #475569; margin-bottom: 4px;">Loose PCS</label>
-                            <input type="number" id="qp_loose_pcs" class="form-control" value="0" min="0" oninput="qp_onLooseChange()" style="height: 38px; font-weight: 700; text-align: center;">
-                        </div>
-                        <div>
-                            <label style="display: block; font-size: 0.72rem; font-weight: 700; color: #2563eb; margin-bottom: 4px;">Paid PCS</label>
-                            <input type="number" id="qp_paid_pcs" class="form-control" value="0" min="0" oninput="qp_onPaidPcsChange()" style="height: 38px; font-weight: 800; color: #2563eb; border: 1.5px solid #93c5fd; background: #eff6ff; text-align: center;">
-                        </div>
-                        <div>
-                            <label style="display: block; font-size: 0.72rem; font-weight: 700; color: #16a34a; margin-bottom: 4px;">🎁 Free PCS</label>
-                            <input type="number" id="qp_free_pcs" class="form-control" value="0" min="0" oninput="qp_onFreePcsChange()" style="height: 38px; font-weight: 800; color: #16a34a; border: 1.5px solid #86efac; background: #f0fdf4; text-align: center;">
-                        </div>
-                        <div>
-                            <label style="display: block; font-size: 0.72rem; font-weight: 600; color: #475569; margin-bottom: 4px;">CTN Cost (৳)</label>
-                            <input type="number" id="qp_ctn_cost" class="form-control" value="0.00" step="0.01" min="0" oninput="qp_onCtnCostChange()" style="height: 38px; text-align: right;">
-                        </div>
-                        <div>
-                            <label style="display: block; font-size: 0.72rem; font-weight: 600; color: #475569; margin-bottom: 4px;">Unit Cost (৳)</label>
-                            <input type="number" id="qp_unit_cost" class="form-control" value="0.00" step="0.01" min="0" oninput="qp_onUnitCostChange()" style="height: 38px; text-align: right;">
-                        </div>
-                        <div>
-                            <label style="display: block; font-size: 0.72rem; font-weight: 600; color: #475569; margin-bottom: 4px;">Sale (৳)</label>
-                            <input type="number" id="qp_sale_price" class="form-control" value="0.00" step="0.01" min="0" style="height: 38px; text-align: right;">
-                        </div>
-                        <div>
-                            <label style="display: block; font-size: 0.72rem; font-weight: 600; color: #475569; margin-bottom: 4px;">MRP (৳)</label>
-                            <input type="number" id="qp_mrp_price" class="form-control" value="0.00" step="0.01" min="0" style="height: 38px; text-align: right;">
-                        </div>
-                        <div>
-                            <button type="button" class="btn" id="qp_btn_add" onclick="qp_addItem()" style="height: 38px; background: #10b981; color: white; font-weight: 700; border-radius: 6px; padding: 0 16px; border: none; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 4px;">
-                                <i class="fas fa-plus"></i> Add
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Staging Items Table -->
-                <div style="padding: 0 20px; max-height: 250px; overflow-y: auto;">
-                    <table class="custom-table" style="margin: 0; width: 100%;">
-                        <thead>
-                            <tr style="background: #e0f2fe; color: #0369a1;">
-                                <th style="font-size: 0.75rem; text-transform: uppercase; font-weight: 800;">PRODUCT</th>
-                                <th style="font-size: 0.75rem; text-transform: uppercase; font-weight: 800;">BATCH</th>
-                                <th style="font-size: 0.75rem; text-transform: uppercase; font-weight: 800;">EXPIRY</th>
-                                <th style="font-size: 0.75rem; text-transform: uppercase; font-weight: 800; text-align: center;">PAID QTY</th>
-                                <th style="font-size: 0.75rem; text-transform: uppercase; font-weight: 800; text-align: center;">🎁 FREE</th>
-                                <th style="font-size: 0.75rem; text-transform: uppercase; font-weight: 800; text-align: center;">INBOUND STK</th>
-                                <th style="font-size: 0.75rem; text-transform: uppercase; font-weight: 800; text-align: right;">COST</th>
-                                <th style="font-size: 0.75rem; text-transform: uppercase; font-weight: 800; text-align: right;">TOTAL</th>
-                                <th style="font-size: 0.75rem; text-transform: uppercase; font-weight: 800; text-align: center; width: 45px;"></th>
-                            </tr>
-                        </thead>
-                        <tbody id="qp_items_table_body">
-                            <tr>
-                                <td colspan="9" class="text-center" style="padding: 28px; color: #94a3b8; font-size: 0.88rem;">
-                                    No products added to this purchase yet.
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Modal Footer -->
-            <div style="padding: 14px 20px; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; background: white; border-radius: 0 0 12px 12px;">
-                <div style="font-size: 1.15rem; font-weight: 800; color: #1e293b;">
-                    Grand Total: <span style="color: #2563eb; font-weight: 900;">৳ <span id="qp_grand_total">0</span></span>
-                </div>
-                <div style="display: flex; gap: 10px;">
-                    <button type="button" class="btn" onclick="closeQuickPurchase()" style="background: #475569; color: white; font-weight: 600; padding: 9px 20px; border-radius: 6px; border: none; cursor: pointer;">Cancel</button>
-                    <button type="button" class="btn" id="qp_btn_submit" onclick="qp_submit()" style="background: #2563eb; color: white; font-weight: 700; padding: 9px 20px; border-radius: 6px; border: none; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                        <i class="fas fa-save"></i> Save & Receive Stock
+        <div class="modal-content quick-purchase-mobile-container">
+            <div id="qp_form_container" style="display: flex; flex-direction: column; height: 100%; width: 100%;">
+                <!-- Green Mobile App Header -->
+                <div class="qs-mobile-header" style="background: linear-gradient(135deg, #059669 0%, #10b981 100%);">
+                    <button type="button" class="qs-hdr-btn" onclick="closeQuickPurchase()" title="Back">
+                        <i class="fas fa-arrow-left"></i>
                     </button>
+                    <div class="qs-hdr-title">
+                        <span style="color: #fde047;">⚡</span> Quick Purchase
+                    </div>
+                    <button type="button" class="qs-hdr-btn" onclick="closeQuickPurchase()" title="Close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <!-- Scrollable Body with Grey Background -->
+                <div class="qs-mobile-body">
+                    <!-- Row 1: Destination Warehouse & PO/Invoice No -->
+                    <div class="qs-grid-2" style="grid-template-columns: 1.15fr 1fr; margin-bottom: 12px;">
+                        <div>
+                            <label class="qs-field-label">DESTINATION WAREHOUSE</label>
+                            <select id="qp_warehouse_select" class="qs-wh-pill-select" style="background-color: #ecfdf5; border-color: #a7f3d0; color: #047857;"></select>
+                        </div>
+                        <div>
+                            <label class="qs-field-label">PO / INVOICE NO</label>
+                            <input type="text" id="qp_invoice_no" class="qs-input-field" placeholder="Auto / PO-2026-...">
+                        </div>
+                    </div>
+
+                    <!-- Row 2: Product Search with Search Icon & Dropdown -->
+                    <div style="position: relative; margin-bottom: 12px;">
+                        <label class="qs-field-label">PRODUCT SEARCH</label>
+                        <div class="qs-search-bar">
+                            <i class="fas fa-search qs-search-icon" style="color: #10b981;"></i>
+                            <input type="text" id="qp_search_input" placeholder="Search product name, code, barcode..." autocomplete="off" oninput="qp_filterProducts(this.value)" onfocus="qp_filterProducts(this.value)">
+                        </div>
+                        <div id="qp_results" class="qs-dropdown-list" style="display:none;"></div>
+                    </div>
+
+                    <!-- Row 3: Purchase Date & Supplier -->
+                    <div class="qs-grid-2" style="grid-template-columns: 1fr 1.5fr; margin-bottom: 14px;">
+                        <div>
+                            <label class="qs-field-label">PURCHASE DATE</label>
+                            <input type="date" id="qp_purchase_date" class="qs-input-field">
+                        </div>
+                        <div>
+                            <label class="qs-field-label">SUPPLIER</label>
+                            <select id="qp_supplier_select" class="qs-input-field qs-select-field"></select>
+                        </div>
+                    </div>
+
+                    <!-- Cart Items Cards Container -->
+                    <div id="quickPurchCartItems"></div>
+
+                    <!-- Calculations Summary Card -->
+                    <div class="qs-calc-card">
+                        <div class="qs-grid-2" style="grid-template-columns: 1fr 1fr; margin-bottom: 10px;">
+                            <div>
+                                <label class="qs-field-label">TOTAL CARTONS</label>
+                                <input type="text" id="qp_summary_ctn" class="qs-input-field" readonly value="0 CTN" style="font-weight: 800; background: #f8fafc; color: #065f46;">
+                            </div>
+                            <div>
+                                <label class="qs-field-label">TOTAL PIECES</label>
+                                <input type="text" id="qp_summary_pcs" class="qs-input-field" readonly value="0 pcs" style="font-weight: 800; background: #f8fafc; color: #047857;">
+                            </div>
+                        </div>
+                        <div class="qs-grid-2" style="grid-template-columns: 1fr 1fr;">
+                            <div>
+                                <label class="qs-field-label">PAID AMOUNT (৳)</label>
+                                <input type="number" id="qp_paid_amount" class="qs-input-field" placeholder="0.00" min="0" oninput="qp_calculateTotals()">
+                            </div>
+                            <div>
+                                <label class="qs-field-label">DUE AMOUNT (৳)</label>
+                                <input type="text" id="qp_due_amount" class="qs-input-field qs-due-highlight" readonly value="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer with Total Payable & Actions -->
+                <div class="qs-mobile-footer">
+                    <div class="qs-total-payable-bar" style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border-color: #a7f3d0;">
+                        <span class="qs-total-label" style="color: #065f46;">TOTAL PAYABLE</span>
+                        <span class="qs-total-val" style="color: #047857;">৳ <span id="qp_total_text">0</span></span>
+                    </div>
+                    <div class="qs-actions-row">
+                        <button type="button" class="qs-btn-clear" onclick="qp_clearCart()">Clear</button>
+                        <button type="button" class="qs-btn-submit" id="qp_btn_submit" onclick="qp_submit()" style="background: #059669;">CONFIRM & RECEIVE</button>
+                        <button type="button" class="qs-btn-full" onclick="qp_fullPaid()" style="background: #10b981;">Full</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Success Screen -->
+            <div id="qp_success_screen" style="display:none; height:100%; flex-direction:column; align-items:center; justify-content:center; padding:30px 20px; text-align:center; background:#ffffff;">
+                <div style="width:70px; height:70px; border-radius:50%; background:#dcfce7; color:#16a34a; display:flex; align-items:center; justify-content:center; font-size:2.2rem; margin-bottom:16px;">
+                    <i class="fas fa-check"></i>
+                </div>
+                <h3 style="margin: 0 0 6px 0; font-size: 1.35rem; font-weight: 800; color: #0f172a;">Purchase Recorded!</h3>
+                <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 20px;">Purchase Order: <strong id="qp_success_po_no" style="color:#059669;">-</strong></p>
+                <div style="display:flex; gap:10px; width:100%; max-width:280px;">
+                    <button type="button" class="btn btn-secondary" onclick="qp_resetUI(); closeQuickPurchase();" style="flex:1;">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="qp_resetUI(); openQuickPurchase();" style="flex:1; background: #059669; border-color: #059669;">New Purchase</button>
                 </div>
             </div>
         </div>
