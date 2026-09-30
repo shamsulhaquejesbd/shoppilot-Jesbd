@@ -109,9 +109,7 @@
                 <div class="sidebar-header">
                     <div class="logo-area">
                         <i class="fas fa-shopping-bag logo-icon" style="color: #3b82f6;"></i>
-                        <span class="logo-text" id="sidebarLogoText" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; font-weight: 800; font-size: 1.35rem; letter-spacing: -0.5px;">
-                            <span style="color: #1e293b;">My</span><span style="color: #3b82f6;">Stics</span>
-                        </span>
+                        <span class="logo-text" id="sidebarLogoText" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; font-weight: 800; font-size: 1.35rem; letter-spacing: -0.5px; color: #1e293b;">shoPPilot</span>
                     </div>
                     <button type="button" id="sidebarToggle" onclick="toggleSidebar()">
                         <i class="fas fa-chevron-left" id="toggleIcon"></i>
@@ -160,6 +158,9 @@
                     
                     <a class="nav-link" onclick="switchAppView('settings')">
                         <i class="fas fa-cog"></i><span>Settings</span>
+                    </a>
+                    <a class="nav-link" onclick="switchAppView('data_management')">
+                        <i class="fas fa-database"></i><span>Data Management</span>
                     </a>
                     <a class="nav-link" onclick="switchAppView('users')">
                         <i class="fas fa-user-shield"></i><span>User Roles</span>
@@ -235,7 +236,7 @@
                             <div class="chart-header"><h3><i class="fas fa-bolt"></i> Quick Actions</h3></div>
                             <div class="action-buttons">
                                 <button class="btn-action qa-sale" onclick="openQuickSale()"><i class="fas fa-cart-plus"></i><span>Quick Sale</span></button>
-                                <button class="btn-action qa-purchase" onclick="openQuickPurchase()" style="background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;"><i class="fas fa-truck-loading" style="color: #059669;"></i><span>⚡ Quick Purchase</span></button>
+                                <button class="btn-action qa-purchase" onclick="openQuickPurchase()" style="background: #ecfdf5; color: #047857; border: none;"><i class="fas fa-truck-loading" style="color: #059669;"></i><span>⚡ Quick Purchase</span></button>
                                 <button class="btn-action qa-stock" onclick="switchAppView('inventory')"><i class="fas fa-boxes"></i><span>Stock</span></button>
                                 <button class="btn-action qa-report" onclick="switchAppView('reports')"><i class="fas fa-file-export"></i><span>Reports</span></button>
                             </div>
@@ -282,17 +283,17 @@
 
                 <!-- VIEW: WAREHOUSE INFO & ANALYTICS -->
                 <section id="view_warehouse_info" class="view-section" style="width: 100%; max-width: 100%; box-sizing: border-box;">
-                    <div class="page-header wh-page-header" style="margin-bottom: 1.5rem;">
-                        <div style="display: flex; align-items: center; gap: 14px;">
-                            <span style="display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; background: #3b82f6; color: white; border-radius: 10px; font-size: 1.35rem; flex-shrink: 0; box-shadow: 0 4px 10px rgba(59, 130, 246, 0.25);">
+                    <div class="page-header wh-page-header" style="margin-bottom: 1.25rem;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; background: #3b82f6; color: white; border-radius: 8px; font-size: 1.05rem; flex-shrink: 0; box-shadow: 0 3px 8px rgba(59, 130, 246, 0.25);">
                                 <i class="fas fa-warehouse"></i>
                             </span>
                             <div>
-                                <h1 style="font-size: 1.65rem; font-weight: 800; color: #1e293b; margin: 0; line-height: 1.2;">Warehouse Info & Analytics</h1>
-                                <p class="subtitle" style="margin: 4px 0 0; color: #64748b; font-size: 0.88rem;">Inventory valuation in cost price, stock levels, and category breakdown</p>
+                                <h1 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin: 0; line-height: 1.3;">Warehouse Info & Analytics</h1>
+                                <p class="subtitle" style="margin: 3px 0 0; color: #64748b; font-size: 0.82rem;">Inventory valuation in cost price, stock levels, and category breakdown</p>
                             </div>
                         </div>
-                        <button class="btn btn-primary wh-refresh-btn" onclick="loadWarehouseInfoData()" style="background: #3b82f6; border: none; border-radius: 8px; padding: 10px 18px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);">
+                        <button class="btn btn-primary wh-refresh-btn" onclick="loadWarehouseInfoData()" style="background: #3b82f6; border: none; border-radius: 8px; padding: 8px 16px; font-size: 0.85rem; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);">
                             <i class="fas fa-sync-alt"></i> Refresh Data
                         </button>
                     </div>
@@ -638,7 +639,7 @@
                             <h1><i class="fas fa-history"></i> Purchase Inbound</h1>
                             <p class="subtitle">Record supplier procurements and new batch arrivals</p>
                         </div>
-                        <button type="button" class="btn btn-primary" onclick="openQuickPurchase()"><i class="fas fa-plus"></i> New Purchase</button>
+                        <button type="button" class="btn btn-primary" onclick="openMultiPurchaseModal()"><i class="fas fa-plus"></i> New Purchase</button>
                     </div>
 
                     <!-- PURCHASE HISTORY SECTION -->
@@ -897,27 +898,42 @@
                         </div>
                     </div>
                     <div class="report-filters">
-                        <div class="form-group"><label>Start Date</label><input type="date" id="rptStartDate" class="form-control"></div>
-                        <div class="form-group"><label>End Date</label><input type="date" id="rptEndDate" class="form-control"></div>
+                        <div class="form-group"><label>Start Date</label><input type="date" id="rptStartDate" class="form-control" value="2026-08-31" onchange="onReportTypeChange()"></div>
+                        <div class="form-group"><label>End Date</label><input type="date" id="rptEndDate" class="form-control" value="2026-09-30" onchange="onReportTypeChange()"></div>
                         <div class="form-group">
                             <label>Report Type</label>
-                            <select id="rptTypeSelect" class="form-control">
+                            <select id="rptTypeSelect" class="form-control" onchange="onReportTypeChange()">
+                                <option value="category_brand_sales" selected>Category & Brand Wise Sales Report</option>
+                                <option value="stock">Current Stock Report</option>
                                 <option value="collection">Collection Report</option>
                                 <option value="deposit_report">Deposit & Expense Report</option>
-                                <option value="stock">Current Stock Report</option>
                             </select>
+                        </div>
+                        <div class="form-group" id="rptCustomerFilterGroup">
+                            <label><i class="fas fa-search" style="font-size: 0.8rem; color: #64748b; margin-right: 2px;"></i> Search Customer</label>
+                            <input type="text" id="rptCustomerSearch" class="form-control" placeholder="Type name, phone, or ID..." oninput="onReportTypeChange()">
                         </div>
                         <div class="form-group"><button class="btn btn-primary" style="width: 100%; height: 42px;" onclick="generateAnalyticalReport()"><i class="fas fa-search"></i> Generate</button></div>
                     </div>
-                    <div class="report-summary">
-                        <div class="summary-box"><div style="color:#64748b; font-weight:700;">Records</div><div class="stat-value" id="rpt_count">0</div></div>
-                        <div class="summary-box"><div style="color:#64748b; font-weight:700;">Total Amount</div><div class="stat-value" id="rpt_total">৳ 0.00</div></div>
+                    <div class="report-summary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 20px;">
+                        <div class="summary-box" style="background:#ffffff; border-radius:12px; border:1px solid #e2e8f0; padding:18px 24px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+                            <div style="color:#64748b; font-weight:700; font-size:0.88rem; margin-bottom:6px;">Transactions / Count</div>
+                            <div class="stat-value" id="rpt_count" style="color:#2563eb; font-size:1.75rem; font-weight:800;">9 Items</div>
+                        </div>
+                        <div class="summary-box" style="background:#ffffff; border-radius:12px; border:1px solid #e2e8f0; padding:18px 24px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+                            <div style="color:#64748b; font-weight:700; font-size:0.88rem; margin-bottom:6px;">Total Amount</div>
+                            <div class="stat-value" id="rpt_total" style="color:#2563eb; font-size:1.75rem; font-weight:800;">৳ 2,91,18,818.76</div>
+                        </div>
+                        <div class="summary-box" style="background:#ffffff; border-radius:12px; border:1px solid #e2e8f0; padding:18px 24px; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+                            <div style="color:#64748b; font-weight:700; font-size:0.88rem; margin-bottom:6px;">Period</div>
+                            <div class="stat-value" id="rpt_period" style="color:#2563eb; font-size:1.05rem; font-weight:700; line-height:2.2rem;">2026-08-31 to 2026-09-30</div>
+                        </div>
                     </div>
-                    <div class="chart-card">
-                        <div class="table-responsive">
-                            <table class="data-table" id="reportResultTable">
-                                <thead id="reportHeader"></thead>
-                                <tbody id="reportContent"><tr><td colspan="8" class="text-center">Select filters and generate report.</td></tr></tbody>
+                    <div class="chart-card" style="padding: 0; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #ffffff; box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
+                        <div class="table-responsive" style="overflow-x: auto;">
+                            <table class="data-table" id="reportResultTable" style="margin: 0; width: 100%; border-collapse: collapse;">
+                                <thead id="reportHeader" style="background: #e0f2fe;"></thead>
+                                <tbody id="reportContent"><tr><td colspan="10" class="text-center" style="padding: 30px; color: #64748b;">Loading stock report...</td></tr></tbody>
                             </table>
                         </div>
                     </div>
@@ -930,7 +946,7 @@
                             <h1><i class="fas fa-cog"></i> Settings & Master Data</h1>
                             <p class="subtitle">System parameters and taxonomies stored in Supabase</p>
                         </div>
-                        <button class="btn btn-secondary" onclick="openSupabaseConfigModal()"><i class="fas fa-database"></i> Supabase Setup</button>
+                        <button class="btn btn-secondary" onclick="openSupabaseConfigModal()"><i class="fas fa-lock" style="font-size: 0.78rem; margin-right: 3px; color: #f59e0b;"></i><i class="fas fa-database" style="color: #10b981;"></i> Supabase Setup</button>
                     </div>
 
                     <div class="settings-top-grid">
@@ -1002,6 +1018,10 @@
                             <div id="customerTypeListContainer"></div>
                         </div>
                     </div>
+                </section>
+
+                <!-- VIEW: DATA MANAGEMENT & BULK UPLOADER -->
+                <section id="view_data_management" class="view-section">
                 </section>
 
                 <!-- VIEW: USERS -->
@@ -1555,20 +1575,171 @@
 
     <!-- Universal Lookup Modal -->
     <div id="docLookupModal" class="modal">
-        <div class="modal-content" style="max-width: 650px;">
-            <div class="modal-header" style="background:#1e293b; color:white;">
-                <h3 style="margin:0;"><i class="fas fa-search" style="color:#4cc9f0;"></i> Universal Document Lookup</h3>
-                <button class="btn-close" onclick="closeModal('docLookupModal')" style="color:white;">&times;</button>
+        <div class="modal-content doc-lookup-modal-content" style="max-width: 600px; border-radius: 16px; overflow: hidden; border: none; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+            <div class="modal-header" style="background:#1e293b; color:white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin:0; font-size: 1.15rem; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-search" style="color:#38bdf8;"></i> Universal Document Lookup
+                </h3>
+                <button type="button" class="btn-close" onclick="closeModal('docLookupModal')" style="color:white; opacity: 0.85; font-size: 1.4rem; background: none; border: none; cursor: pointer; padding: 0; line-height: 1;" title="Close">&times;</button>
             </div>
-            <div class="modal-body">
-                <div style="display:flex; gap:10px; margin-bottom:12px;">
-                    <input type="text" id="docLookupInput" class="form-control" placeholder="Search Invoice (INV-...), Memo, Purchase, or Expense...">
-                    <button class="btn btn-primary" onclick="executeUniversalLookup()">Search</button>
+            <div class="modal-body" style="padding: 20px; max-height: calc(88vh - 120px); overflow-y: auto;">
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="docLookupInput" class="form-control" placeholder="Search by Invoice (INV-...), Memo, Purchase..." onkeyup="if(event.key==='Enter') executeUniversalLookup()" style="height: 44px; border-radius: 10px; font-size: 0.95rem; font-weight: 600; padding: 0 14px; border: 1.5px solid #cbd5e1;">
+                    <button class="btn btn-primary" onclick="executeUniversalLookup()" style="height: 44px; padding: 0 22px; border-radius: 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; background: #3b82f6;">
+                        <i class="fas fa-search"></i> Search
+                    </button>
                 </div>
-                <div id="docLookupEmptyArea" style="text-align:center; padding:30px; color:#94a3b8;">Enter document ID to search</div>
+                <div style="font-size: 0.78rem; color: #64748b; font-style: italic; margin-top: 8px; margin-bottom: 16px; display: flex; align-items: center; gap: 5px;">
+                    <span style="font-style: normal;">💡</span> Supports Sales Invoices, Memo Numbers, Purchase Procurements, and Operating Expenses.
+                </div>
+                <div id="docLookupEmptyArea" style="text-align:center; padding:36px 20px; color:#94a3b8; background: #f8fafc; border-radius: 12px; border: 1px dashed #cbd5e1;">
+                    <i class="fas fa-file-invoice" style="font-size: 2.2rem; color: #cbd5e1; margin-bottom: 10px; display: block;"></i>
+                    Enter document ID to search
+                </div>
                 <div id="docLookupResultArea" style="display:none;"></div>
             </div>
-            <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('docLookupModal')">Close</button></div>
+            <div class="modal-footer" style="padding: 12px 20px; border-top: 1px solid #f1f5f9; display: flex; justify-content: flex-end; background: #ffffff;">
+                <button type="button" class="btn" onclick="closeModal('docLookupModal')" style="background: #475569; color: white; border-radius: 8px; padding: 8px 24px; font-weight: 700; border: none; cursor: pointer;">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Multi-Product Purchase Inbound Modal -->
+    <div id="multiPurchaseModal" class="modal">
+        <div class="modal-content mpp-modal-content" style="max-width: 860px; width: 95%; border-radius: 16px; overflow: hidden; border: none; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); background: #ffffff;">
+            <!-- Modal Header -->
+            <div class="modal-header" style="background: #4361ee; color: white; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; display: flex; align-items: center; gap: 10px; color: white;">
+                    <i class="fas fa-truck-loading" style="color: white; font-size: 1.25rem;"></i> Multi-Product Purchase Inbound
+                </h3>
+                <button type="button" class="btn-close" onclick="closeModal('multiPurchaseModal')" style="color: white; opacity: 0.9; font-size: 1.4rem; background: none; border: none; cursor: pointer; padding: 0; line-height: 1;" title="Close">&times;</button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="modal-body" style="padding: 20px; max-height: calc(90vh - 120px); overflow-y: auto; background: #ffffff;">
+                <!-- Section 1: Destination Warehouse, Supplier, Purchase Date -->
+                <div class="mpp-top-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.02);">
+                    <div class="mpp-top-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                        <div>
+                            <label style="display: block; font-size: 0.72rem; font-weight: 800; color: #64748b; letter-spacing: 0.05em; margin-bottom: 6px; text-transform: uppercase;">DESTINATION WAREHOUSE</label>
+                            <select id="mpp_warehouse_select" class="form-control" style="height: 42px; border-radius: 10px; font-weight: 700; background: #eef2ff; border: 1.5px solid #c7d2fe; color: #3730a3; padding: 0 12px;"></select>
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.72rem; font-weight: 800; color: #64748b; letter-spacing: 0.05em; margin-bottom: 6px; text-transform: uppercase;">SUPPLIER</label>
+                            <select id="mpp_supplier_select" class="form-control" style="height: 42px; border-radius: 10px; font-weight: 600; background: #ffffff; border: 1.5px solid #cbd5e1; color: #1e293b; padding: 0 12px;">
+                                <option value="">Select Supplier</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.72rem; font-weight: 800; color: #64748b; letter-spacing: 0.05em; margin-bottom: 6px; text-transform: uppercase;">PURCHASE DATE</label>
+                            <input type="date" id="mpp_purchase_date" class="form-control" style="height: 42px; border-radius: 10px; font-weight: 600; background: #ffffff; border: 1.5px solid #cbd5e1; color: #1e293b; padding: 0 12px;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Inbound Product Entry -->
+                <div class="mpp-entry-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.02);">
+                    <div style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 800; color: #1e293b; margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.03em;">
+                        <i class="fas fa-plus-circle" style="color: #10b981; font-size: 1.05rem;"></i> INBOUND PRODUCT ENTRY
+                    </div>
+
+                    <!-- Row 1: Search, Batch, Expiry -->
+                    <div class="mpp-entry-row1" style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+                        <div style="position: relative;">
+                            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 4px;">Product Search</label>
+                            <input type="text" id="mpp_prod_search" class="form-control" placeholder="Type product name/code..." autocomplete="off" oninput="mpp_searchProducts(this.value)" style="height: 40px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 0.88rem;">
+                            <div id="mpp_prod_dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1.5px solid #cbd5e1; border-radius: 8px; box-shadow: 0 12px 28px rgba(0,0,0,0.15); max-height: 220px; overflow-y: auto; z-index: 100; margin-top: 4px;"></div>
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 4px;">Batch No</label>
+                            <input type="text" id="mpp_batch" class="form-control" placeholder="Auto if blank" style="height: 40px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 0.88rem;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #475569; margin-bottom: 4px;">Expiry Date <span style="color: #ef4444;">*</span></label>
+                            <input type="date" id="mpp_expiry" class="form-control" style="height: 40px; border-radius: 8px; border: 1.5px solid #cbd5e1; font-size: 0.88rem;">
+                        </div>
+                    </div>
+
+                    <!-- Row 2: CTN Qty, Loose PCS, Paid PCS, Free PCS, CTN Cost, Unit Cost, Sale, MRP, + Add -->
+                    <div class="mpp-entry-row2" style="display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 62px;">
+                            <label style="display: block; font-size: 0.72rem; font-weight: 800; color: #2563eb; margin-bottom: 4px;">CTN Qty</label>
+                            <input type="number" id="mpp_ctn_qty" class="form-control" value="0" min="0" oninput="mpp_calcFromCtn()" style="height: 38px; border-radius: 8px; border: 1.5px solid #93c5fd; text-align: center; font-weight: 700; color: #1e293b; padding: 0 4px;">
+                        </div>
+                        <div style="flex: 1; min-width: 62px;">
+                            <label style="display: block; font-size: 0.72rem; font-weight: 700; color: #475569; margin-bottom: 4px;">Loose PCS</label>
+                            <input type="number" id="mpp_loose_pcs" class="form-control" value="0" min="0" oninput="mpp_calcFromLoose()" style="height: 38px; border-radius: 8px; border: 1.5px solid #cbd5e1; text-align: center; font-weight: 700; color: #1e293b; padding: 0 4px;">
+                        </div>
+                        <div style="flex: 1; min-width: 62px;">
+                            <label style="display: block; font-size: 0.72rem; font-weight: 800; color: #1e293b; margin-bottom: 4px;">Paid PCS</label>
+                            <input type="number" id="mpp_paid_pcs" class="form-control" value="0" min="0" oninput="mpp_calcFromPaid()" style="height: 38px; border-radius: 8px; border: 1.5px solid #cbd5e1; text-align: center; font-weight: 800; color: #2563eb; background: #f8fafc; padding: 0 4px;">
+                        </div>
+                        <div style="flex: 1; min-width: 68px;">
+                            <label style="display: block; font-size: 0.72rem; font-weight: 800; color: #15803d; margin-bottom: 4px; white-space: nowrap;"><i class="fas fa-gift" style="color: #10b981;"></i> Free PCS</label>
+                            <input type="number" id="mpp_free_pcs" class="form-control" value="0" min="0" style="height: 38px; border-radius: 8px; border: 1.5px solid #86efac; background: #f0fdf4; text-align: center; font-weight: 800; color: #15803d; padding: 0 4px;">
+                        </div>
+                        <div style="flex: 1; min-width: 70px;">
+                            <label style="display: block; font-size: 0.72rem; font-weight: 700; color: #475569; margin-bottom: 4px; white-space: nowrap;">CTN Cost (৳)</label>
+                            <input type="number" step="0.01" id="mpp_ctn_cost" class="form-control" placeholder="0.00" oninput="mpp_calcFromCtnCost()" style="height: 38px; border-radius: 8px; border: 1.5px solid #cbd5e1; text-align: center; font-weight: 600; color: #334155; padding: 0 4px;">
+                        </div>
+                        <div style="flex: 1; min-width: 70px;">
+                            <label style="display: block; font-size: 0.72rem; font-weight: 700; color: #475569; margin-bottom: 4px; white-space: nowrap;">Unit Cost (৳)</label>
+                            <input type="number" step="0.01" id="mpp_unit_cost" class="form-control" placeholder="0.00" oninput="mpp_calcFromUnitCost()" style="height: 38px; border-radius: 8px; border: 1.5px solid #cbd5e1; text-align: center; font-weight: 600; color: #334155; padding: 0 4px;">
+                        </div>
+                        <div style="flex: 1; min-width: 65px;">
+                            <label style="display: block; font-size: 0.72rem; font-weight: 700; color: #475569; margin-bottom: 4px; white-space: nowrap;">Sale (৳)</label>
+                            <input type="number" step="0.01" id="mpp_sale_price" class="form-control" placeholder="0.00" style="height: 38px; border-radius: 8px; border: 1.5px solid #cbd5e1; text-align: center; font-weight: 600; color: #334155; padding: 0 4px;">
+                        </div>
+                        <div style="flex: 1; min-width: 65px;">
+                            <label style="display: block; font-size: 0.72rem; font-weight: 700; color: #475569; margin-bottom: 4px; white-space: nowrap;">MRP (৳)</label>
+                            <input type="number" step="0.01" id="mpp_mrp_price" class="form-control" placeholder="0.00" style="height: 38px; border-radius: 8px; border: 1.5px solid #cbd5e1; text-align: center; font-weight: 600; color: #334155; padding: 0 4px;">
+                        </div>
+                        <div style="flex-shrink: 0;">
+                            <button type="button" id="mpp_btn_add" onclick="mpp_addItem()" class="btn" style="height: 38px; padding: 0 16px; background: #059669; color: white; font-weight: 700; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; border: none; cursor: pointer;">
+                                <i class="fas fa-plus"></i> Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Added Products Table -->
+                <div class="table-responsive" style="border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 16px; overflow-x: auto; background: white;">
+                    <table style="width: 100%; border-collapse: collapse; min-width: 680px;">
+                        <thead>
+                            <tr style="background: #e0f2fe; color: #0284c7; font-size: 0.75rem; font-weight: 800; text-transform: uppercase;">
+                                <th style="padding: 10px 14px; text-align: left;">PRODUCT</th>
+                                <th style="padding: 10px 10px; text-align: left;">BATCH</th>
+                                <th style="padding: 10px 10px; text-align: left;">EXPIRY</th>
+                                <th style="padding: 10px 8px; text-align: center;">PAID QTY</th>
+                                <th style="padding: 10px 8px; text-align: center; color: #16a34a;"><i class="fas fa-gift"></i> FREE</th>
+                                <th style="padding: 10px 8px; text-align: center;">INBOUND STK</th>
+                                <th style="padding: 10px 10px; text-align: right;">COST</th>
+                                <th style="padding: 10px 14px; text-align: right;">TOTAL</th>
+                                <th style="padding: 10px 8px; text-align: center; width: 40px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="mpp_table_body">
+                            <!-- Injected rows -->
+                        </tbody>
+                    </table>
+                    <div id="mpp_empty_row" style="text-align: left; padding: 24px 20px; color: #94a3b8; font-size: 0.88rem; font-weight: 500;">
+                        No products added to this purchase yet.
+                    </div>
+                </div>
+
+                <!-- Section 4: Modal Footer Row -->
+                <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 6px; flex-wrap: wrap; gap: 12px;">
+                    <div style="font-size: 1.25rem; font-weight: 800; color: #0f172a;">
+                        Grand Total: <span id="mpp_grand_total" style="color: #4361ee; font-weight: 800;">৳ 0</span>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button type="button" class="btn" onclick="closeModal('multiPurchaseModal')" style="background: #475569; color: white; border-radius: 8px; padding: 9px 24px; font-weight: 700; border: none; cursor: pointer;">Cancel</button>
+                        <button type="button" id="mpp_btn_save" class="btn" onclick="mpp_submit()" style="background: #4361ee; color: white; border-radius: 8px; padding: 9px 24px; font-weight: 700; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-save"></i> Save & Receive Stock
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

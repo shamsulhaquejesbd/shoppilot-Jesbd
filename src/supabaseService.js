@@ -91,6 +91,9 @@ export function normalizeRow(row) {
     upc: 'UPC',
     note: 'Note',
     narration: 'Narration',
+    category: 'Category',
+    payment_amount: 'Amount',
+    total_collection: 'Amount',
     destination: 'Destination',
     amount: 'Amount',
     total: 'Total',
@@ -208,14 +211,20 @@ const demoStore = {
     { category_id: 'C0002', category_name: 'Skin Care', status: 'Active' },
     { category_id: 'C0003', category_name: 'Baby Care', status: 'Active' },
     { category_id: 'C0004', category_name: 'Oral Care', status: 'Active' },
-    { category_id: 'C0005', category_name: 'Olive Oil', status: 'Active' }
+    { category_id: 'C0005', category_name: 'Olive Oil', status: 'Active' },
+    { category_id: 'C0006', category_name: 'Sesa', status: 'Active' },
+    { category_id: 'C0007', category_name: 'Vasmol', status: 'Active' }
   ],
   brands: [
     { brand_id: 'B0001', brand_name: 'Vasmol', status: 'Active' },
     { brand_id: 'B0002', brand_name: 'Dettol', status: 'Active' },
     { brand_id: 'B0003', brand_name: 'Parachute', status: 'Active' },
     { brand_id: 'B0004', brand_name: 'Sesa', status: 'Active' },
-    { brand_id: 'B0005', brand_name: 'Figaro', status: 'Active' }
+    { brand_id: 'B0005', brand_name: 'Ambassador Olive Oil', status: 'Active' },
+    { brand_id: 'B0006', brand_name: 'Lucy Olive Oil', status: 'Active' },
+    { brand_id: 'B0007', brand_name: 'Sesa Hair Oil', status: 'Active' },
+    { brand_id: 'B0008', brand_name: 'Kali Mehedi', status: 'Active' },
+    { brand_id: 'B0009', brand_name: 'Kesh Kala', status: 'Active' }
   ],
   customers: [
     { customer_id: 'CST0005', customer_name: 'Nasim Store-HBL', customer_type: 'Wholesale', phone: '01819887733', address: 'Habiganj Market', current_due: 23032, opening_due: 0, status: 'Active' },
@@ -233,36 +242,70 @@ const demoStore = {
     { user_id: 'U0002', name: 'Sales Manager', email: 'sales@shoppilot.com', role: 'Sales', status: 'Active', password: 'sales123' }
   ],
   products: [
-    { product_id: 'P0010', product_name: 'Amba Olive oil 150gm tin (80) 550/-', category_id: 'C0005', brand_id: 'B0005', upc: '80', stock: 2720, unit_price: 380, sale_price: 458.33, mrp_price: 550, status: 'Active', barcode: '8901234010' },
-    { product_id: 'P0011', product_name: 'Lucy Olive Oil 150gm tin (80) 515/-', category_id: 'C0005', brand_id: 'B0005', upc: '80', stock: 2480, unit_price: 360, sale_price: 429, mrp_price: 515, status: 'Active', barcode: '8901234011' },
-    { product_id: 'P0012', product_name: 'Sesa Ayurvedic 100ml 230/-', category_id: 'C0001', brand_id: 'B0004', upc: '96', stock: 12632, unit_price: 155, sale_price: 191.67, mrp_price: 230, status: 'Active', barcode: '8901234012' },
-    { product_id: 'P0013', product_name: 'Sesa Ayurvedic 100ml 265/-', category_id: 'C0001', brand_id: 'B0004', upc: '96', stock: 165600, unit_price: 180, sale_price: 220.83, mrp_price: 265, status: 'Active', barcode: '8901234013' },
-    { product_id: 'P0014', product_name: 'Sesa Ayurvedic 200ml 490/-', category_id: 'C0001', brand_id: 'B0004', upc: '48', stock: 1344, unit_price: 340, sale_price: 408, mrp_price: 490, status: 'Active', barcode: '8901234014' },
-    { product_id: 'P0015', product_name: 'Sesa Ayurvedic 200ml 420/-', category_id: 'C0001', brand_id: 'B0004', upc: '48', stock: 21, unit_price: 290, sale_price: 350, mrp_price: 420, status: 'Active', barcode: '8901234015' },
-    { product_id: 'P0016', product_name: 'Vasmol Henna Cream Hair Colour Black (12+12)ml 30/-', category_id: 'C0001', brand_id: 'B0001', upc: '192', stock: 1200, unit_price: 20, sale_price: 24, mrp_price: 30, status: 'Active', barcode: '8901234016' },
-    { product_id: 'P0001', product_name: 'Super Vasmol 33 Kesh Kala 100ml', category_id: 'C0001', brand_id: 'B0001', upc: '24', stock: 120, unit_price: 65, sale_price: 80, mrp_price: 85, status: 'Active', barcode: '8901234001' },
-    { product_id: 'P0002', product_name: 'Dettol Antiseptic Liquid 100ml', category_id: 'C0002', brand_id: 'B0002', upc: '12', stock: 60, unit_price: 110, sale_price: 130, mrp_price: 135, status: 'Active', barcode: '8901234002' }
+    { product_id: 'ME-AOO18', product_name: 'Amba Olive oil 250ml bottle 780/-', category_id: 'C0005', brand_id: 'B0005', upc: '12', stock: 288, unit_price: 619.05, cost_price: 619.05, sale_price: 780, mrp_price: 780, status: 'Active', barcode: '8901234018' },
+    { product_id: 'ME-AOO21', product_name: 'Amba Olive oil 300gm tin 900/-', category_id: 'C0005', brand_id: 'B0005', upc: '40', stock: 240, unit_price: 714.29, cost_price: 714.29, sale_price: 900, mrp_price: 900, status: 'Active', barcode: '8901234021' },
+    { product_id: 'ME-AOO20', product_name: 'Amba Olive oil 500ml bottle 1250/-', category_id: 'C0005', brand_id: 'B0005', category_name: 'Olive Oil', brand_name: 'Ambassador Olive Oil', upc: '12', stock: 108, unit_price: 992.06, cost_price: 992.06, sale_price: 1250, mrp_price: 1250, status: 'Active', barcode: '8901234020' },
+    { product_id: 'ME-LOO52', product_name: 'Amba Olive oil 150gm tin (80) 550/-', category_id: 'C0005', brand_id: 'B0005', category_name: 'Olive Oil', brand_name: 'Ambassador Olive Oil', upc: '80', stock: 5440, unit_price: 436.51, cost_price: 436.51, sale_price: 550, mrp_price: 550, status: 'Active', barcode: '8901234052' },
+    { product_id: 'ME-LOO49', product_name: 'Lucy Olive Oil 250ml bottle 750/-', category_id: 'C0005', brand_id: 'B0006', category_name: 'Olive Oil', brand_name: 'Lucy Olive Oil', upc: '12', stock: 132, unit_price: 595.24, cost_price: 595.24, sale_price: 750, mrp_price: 750, status: 'Active', barcode: '8901234049' },
+    { product_id: 'ME-LOO54', product_name: 'Lucy Olive Oil 300gm tin 850/-', category_id: 'C0005', brand_id: 'B0006', category_name: 'Olive Oil', brand_name: 'Lucy Olive Oil', upc: '40', stock: 280, unit_price: 674.60, cost_price: 674.60, sale_price: 850, mrp_price: 850, status: 'Active', barcode: '8901234054' },
+    { product_id: 'ME-LOO51', product_name: 'Lucy Olive Oil 500ml bottle 1150/-', category_id: 'C0005', brand_id: 'B0006', category_name: 'Olive Oil', brand_name: 'Lucy Olive Oil', upc: '12', stock: 120, unit_price: 912.70, cost_price: 912.70, sale_price: 1150, mrp_price: 1150, status: 'Active', barcode: '8901234051' },
+    { product_id: 'ME-LOO53', product_name: 'Lucy Olive Oil 150gm tin (80) 515/-', category_id: 'C0005', brand_id: 'B0006', category_name: 'Olive Oil', brand_name: 'Lucy Olive Oil', upc: '80', stock: 9680, unit_price: 408.73, cost_price: 408.73, sale_price: 515, mrp_price: 515, status: 'Active', barcode: '8901234053' },
+    { product_id: 'MN-SAO10', product_name: 'Sesa Ayurvedic 100ml 230/-', category_id: 'C0006', brand_id: 'B0007', category_name: 'Sesa', brand_name: 'Sesa Hair Oil', upc: '96', stock: 12632, unit_price: 182.54, cost_price: 182.54, sale_price: 230, mrp_price: 230, status: 'Active', barcode: '8901234010' },
+    { product_id: 'MN-SAO13', product_name: 'Sesa Ayurvedic 100ml 250/-', category_id: 'C0006', brand_id: 'B0007', category_name: 'Sesa', brand_name: 'Sesa Hair Oil', upc: '96', stock: 24384, unit_price: 198.41, cost_price: 198.41, sale_price: 250, mrp_price: 250, status: 'Active', barcode: '8901234013' },
+    { product_id: 'MN-SAO21', product_name: 'Sesa Ayurvedic 100ml 265/-', category_id: 'C0006', brand_id: 'B0007', category_name: 'Sesa', brand_name: 'Sesa Hair Oil', upc: '96', stock: 142464, unit_price: 210.32, cost_price: 210.32, sale_price: 265, mrp_price: 265, status: 'Active', barcode: '8901234021' },
+    { product_id: 'MN-SAO23', product_name: 'Sesa Ayurvedic 100ml 280/-', category_id: 'C0006', brand_id: 'B0007', category_name: 'Sesa', brand_name: 'Sesa Hair Oil', upc: '96', stock: 145056, unit_price: 222.22, cost_price: 222.22, sale_price: 280, mrp_price: 280, status: 'Active', barcode: '8901234023' },
+    { product_id: 'MN-SAO18', product_name: 'Sesa Ayurvedic 200ml 490/-', category_id: 'C0006', brand_id: 'B0007', category_name: 'Sesa', brand_name: 'Sesa Hair Oil', upc: '48', stock: 13104, unit_price: 388.89, cost_price: 388.89, sale_price: 490, mrp_price: 490, status: 'Active', barcode: '8901234018' },
+    { product_id: 'MN-SAO05', product_name: 'Sesa Ayurvedic 200ml 420/-', category_id: 'C0006', brand_id: 'B0007', category_name: 'Sesa', brand_name: 'Sesa Hair Oil', upc: '48', stock: 21, unit_price: 333.33, cost_price: 333.33, sale_price: 420, mrp_price: 420, status: 'Active', barcode: '8901234005' },
+    { product_id: 'HR-VKM03', product_name: 'Kali Mehedi 4gm 15/-', category_id: 'C0007', brand_id: 'B0008', category_name: 'Vasmol', brand_name: 'Kali Mehedi', upc: '1152', stock: 172800, unit_price: 7.5052, cost_price: 7.5052, sale_price: 15, mrp_price: 15, status: 'Active', barcode: '8901234003' },
+    { product_id: 'HR-VKK04', product_name: 'Super Vasmol -33 100ml 130/-', category_id: 'C0007', brand_id: 'B0009', category_name: 'Vasmol', brand_name: 'Kesh Kala', upc: '96', stock: 17280, unit_price: 95.24, cost_price: 95.24, sale_price: 130, mrp_price: 130, status: 'Active', barcode: '8901234004' },
+    { product_id: 'HR-VKK05', product_name: 'Super Vasmol -33 50ml 75/-', category_id: 'C0007', brand_id: 'B0009', category_name: 'Vasmol', brand_name: 'Kesh Kala', upc: '192', stock: 32640, unit_price: 58.00, cost_price: 58.00, sale_price: 75, mrp_price: 75, status: 'Active', barcode: '8901234005' },
+    { product_id: 'HR-VKK01', product_name: 'Super Vasmol 33 Kesh Kala 100ml', category_id: 'C0001', brand_id: 'B0001', upc: '48', stock: 3000, unit_price: 65.00, cost_price: 65.00, sale_price: 85, mrp_price: 85, status: 'Active', barcode: '8901234001' },
+    { product_id: 'HR-VKK02', product_name: 'Super Vasmol 33 Kesh Kala 50ml', category_id: 'C0001', brand_id: 'B0001', upc: '96', stock: 3840, unit_price: 40.00, cost_price: 40.00, sale_price: 55, mrp_price: 55, status: 'Active', barcode: '8901234002' },
+    { product_id: 'ME-AOO22', product_name: 'Amba Coconut Oil 200ml (60) 230/-', category_id: 'C0005', brand_id: 'B0005', upc: '60', stock: 14400, unit_price: 192.13, cost_price: 192.13, sale_price: 230, mrp_price: 230, status: 'Active', barcode: '8901234022' },
+    { product_id: 'ME-LOO55', product_name: 'Lucy Coconut Oil 200ml (60) 230/-', category_id: 'C0005', brand_id: 'B0005', upc: '60', stock: 6000, unit_price: 190.00, cost_price: 190.00, sale_price: 230, mrp_price: 230, status: 'Active', barcode: '8901234055' },
+    { product_id: 'MN-SAO24', product_name: 'Sesa Ayurvedic Hair Oil 50ml', category_id: 'C0001', brand_id: 'B0004', upc: '120', stock: 25261, unit_price: 120.001064, cost_price: 120.001064, sale_price: 150, mrp_price: 150, status: 'Active', barcode: '8901234024' }
   ],
   warehouse_stock: [
-    { product_id: 'P0010', warehouse_id: 'W001', warehouse_name: 'MouloviBazar', stock: 2720, ctn: 34, batch_no: 'BT-20260830-001' },
-    { product_id: 'P0010', warehouse_id: 'W002', warehouse_name: 'Begumganj 2', stock: 800, ctn: 10, batch_no: 'BT-20260830-001' },
-    { product_id: 'P0011', warehouse_id: 'W001', warehouse_name: 'MouloviBazar', stock: 2480, ctn: 31, batch_no: 'BT-20260830-001' },
-    { product_id: 'P0012', warehouse_id: 'W001', warehouse_name: 'MouloviBazar', stock: 12632, ctn: 131, batch_no: 'BT-20260830-001' },
-    { product_id: 'P0013', warehouse_id: 'W002', warehouse_name: 'Begumganj 2', stock: 165600, ctn: 1725, batch_no: 'BT-20260830-001' },
-    { product_id: 'P0013', warehouse_id: 'W001', warehouse_name: 'MouloviBazar', stock: 9600, ctn: 100, batch_no: 'BT-20260830-001' },
-    { product_id: 'P0014', warehouse_id: 'W001', warehouse_name: 'MouloviBazar', stock: 1344, ctn: 28, batch_no: 'BT-20260830-001' },
-    { product_id: 'P0015', warehouse_id: 'W001', warehouse_name: 'MouloviBazar', stock: 21, ctn: 0, batch_no: 'BT-20260830-001' },
-    { product_id: 'P0016', warehouse_id: 'W001', warehouse_name: 'MouloviBazar', stock: 1200, ctn: 50, batch_no: 'BT-20260830-001' },
-    { product_id: 'P0001', warehouse_id: 'W001', warehouse_name: 'MouloviBazar', stock: 80, ctn: 7, batch_no: 'BT-VAS-01' },
-    { product_id: 'P0002', warehouse_id: 'W001', warehouse_name: 'MouloviBazar', stock: 60, ctn: 5, batch_no: 'BT-DET-01' }
+    { product_id: 'ME-AOO18', warehouse_id: 'W002', warehouse_name: 'Begumganj 2', stock: 288, ctn: 24, batch_no: 'BT-AOO18' },
+    { product_id: 'ME-AOO21', warehouse_id: 'W002', warehouse_name: 'Begumganj 2', stock: 240, ctn: 6, batch_no: 'BT-AOO21' },
+    { product_id: 'ME-AOO20', warehouse_id: 'W002', warehouse_name: 'Begumganj 2', stock: 108, ctn: 9, batch_no: 'BT-AOO20' },
+    { product_id: 'ME-LOO52', warehouse_id: 'W001', warehouse_name: 'MouloviBazar', stock: 2720, ctn: 34, batch_no: 'BT-LOO52-1' },
+    { product_id: 'ME-LOO52', warehouse_id: 'W002', warehouse_name: 'Begumganj 2', stock: 2720, ctn: 34, batch_no: 'BT-LOO52-2' },
+    { product_id: 'ME-LOO49', warehouse_id: 'W002', warehouse_name: 'Begumganj 2', stock: 132, ctn: 11, batch_no: 'BT-LOO49' },
+    { product_id: 'ME-LOO54', warehouse_id: 'W002', warehouse_name: 'Begumganj 2', stock: 280, ctn: 7, batch_no: 'BT-LOO54' },
+    { product_id: 'ME-LOO51', warehouse_id: 'W002', warehouse_name: 'Begumganj 2', stock: 120, ctn: 10, batch_no: 'BT-LOO51' },
+    { product_id: 'ME-LOO53', warehouse_id: 'W001', warehouse_name: 'MouloviBazar', stock: 2480, ctn: 31, batch_no: 'BT-LOO53-1' },
+    { product_id: 'ME-LOO53', warehouse_id: 'W002', warehouse_name: 'Begumganj 2', stock: 7200, ctn: 90, batch_no: 'BT-LOO53-2' },
+    { product_id: 'MN-SAO10', warehouse_id: 'W001', warehouse_name: 'MouloviBazar', stock: 12632, ctn: 131, batch_no: 'BT-SAO10' },
+    { product_id: 'MN-SAO13', warehouse_id: 'W002', warehouse_name: 'Begumganj 2', stock: 13824, ctn: 144, batch_no: 'BT-SAO13-1' },
+    { product_id: 'MN-SAO13', warehouse_id: 'W003', warehouse_name: 'Begumganj 3', stock: 10560, ctn: 110, batch_no: 'BT-SAO13-2' },
+    { product_id: 'MN-SAO21', warehouse_id: 'W002', warehouse_name: 'Begumganj 2', stock: 141600, ctn: 1475, batch_no: 'BT-SAO21-1' },
+    { product_id: 'MN-SAO21', warehouse_id: 'W003', warehouse_name: 'Begumganj 3', stock: 864, ctn: 9, batch_no: 'BT-SAO21-2' },
+    { product_id: 'MN-SAO23', warehouse_id: 'W004', warehouse_name: 'Armanitola', stock: 145056, ctn: 1511, batch_no: 'BT-SAO23' },
+    { product_id: 'MN-SAO18', warehouse_id: 'W001', warehouse_name: 'MouloviBazar', stock: 1344, ctn: 28, batch_no: 'BT-SAO18-1' },
+    { product_id: 'MN-SAO18', warehouse_id: 'W002', warehouse_name: 'Begumganj 2', stock: 10992, ctn: 229, batch_no: 'BT-SAO18-2' },
+    { product_id: 'MN-SAO18', warehouse_id: 'W003', warehouse_name: 'Begumganj 3', stock: 432, ctn: 9, batch_no: 'BT-SAO18-3' },
+    { product_id: 'MN-SAO18', warehouse_id: 'W004', warehouse_name: 'Armanitola', stock: 336, ctn: 7, batch_no: 'BT-SAO18-4' },
+    { product_id: 'MN-SAO05', warehouse_id: 'W001', warehouse_name: 'MouloviBazar', stock: 21, ctn: 0, batch_no: 'BT-SAO05' },
+    { product_id: 'HR-VKK04', warehouse_id: 'W004', warehouse_name: 'Armanitola', stock: 17280, ctn: 180, batch_no: 'BT-VKK04' },
+    { product_id: 'HR-VKK01', warehouse_id: 'W001', warehouse_name: 'MouloviBazar', stock: 1200, ctn: 25, batch_no: 'BT-VKK01-1' },
+    { product_id: 'HR-VKK01', warehouse_id: 'W002', warehouse_name: 'Begumganj 2', stock: 1800, ctn: 37, batch_no: 'BT-VKK01-2' },
+    { product_id: 'HR-VKK02', warehouse_id: 'W002', warehouse_name: 'Begumganj 2', stock: 3840, ctn: 40, batch_no: 'BT-VKK02' },
+    { product_id: 'ME-AOO22', warehouse_id: 'W001', warehouse_name: 'MouloviBazar', stock: 9600, ctn: 160, batch_no: 'BT-AOO22-1' },
+    { product_id: 'ME-AOO22', warehouse_id: 'W003', warehouse_name: 'Begumganj 3', stock: 4800, ctn: 80, batch_no: 'BT-AOO22-2' },
+    { product_id: 'ME-LOO55', warehouse_id: 'W001', warehouse_name: 'MouloviBazar', stock: 6000, ctn: 100, batch_no: 'BT-LOO55' },
+    { product_id: 'MN-SAO24', warehouse_id: 'W004', warehouse_name: 'Armanitola', stock: 25261, ctn: 210, batch_no: 'BT-SAO24' }
   ],
   transactions_sales: [
-    { sale_id: 'SA-0001-1', invoice_no: 'INV-2026-0001', memo_no: '4001', date: '2026-09-01T10:00:00Z', customer_id: 'CST0001', customer_name: 'Hamidul Store-MEL', product_id: 'P0001', product_name: 'Super Vasmol 33 Kesh Kala 100ml', batch_no: 'BT-20260917-2466', quantity: 240, sale_price: 80, gross_total: 19200, discount: 0, net_total: 19200, return_amt: 0, payment_type: 'Credit', status: 'Completed', warehouse_id: 'W001' },
-    { sale_id: 'SA-4302-1', invoice_no: 'INV-2026-0013', memo_no: '4302', date: '2026-09-21T10:00:00Z', customer_id: 'CST0001', customer_name: 'Hamidul Store-MEL', product_id: 'P0010', product_name: 'Amba Olive oil 150gm tin (80) 550/-', batch_no: 'BT-20260830-001', quantity: 4000, sale_price: 480, gross_total: 1920000, discount: 0, net_total: 1920000, return_amt: 0, payment_type: 'Credit', status: 'Completed', warehouse_id: 'W001' },
-    { sale_id: 'SA-4229-1', invoice_no: 'INV-2026-0011', memo_no: '4229', date: '2026-09-03T10:00:00Z', customer_id: 'CST0002', customer_name: 'Masud Store-HBL', product_id: 'P0011', product_name: 'Lucy Olive Oil 150gm tin (80) 515/-', batch_no: 'BT-20260830-001', quantity: 1000, sale_price: 432.3, gross_total: 432300, discount: 0, net_total: 432300, payment_type: 'Credit', status: 'Completed', warehouse_id: 'W001' },
-    { sale_id: 'SA-4230-1', invoice_no: 'INV-2026-0009', memo_no: '4230', date: '2026-09-02T10:00:00Z', customer_id: 'CST0003', customer_name: 'Hamidul Store-HBL', product_id: 'P0012', product_name: 'Amba Coconut oil 200ml (60) 230/-', batch_no: 'BT-20260830-001', quantity: 4500, sale_price: 192.13, gross_total: 864600, discount: 0, net_total: 864600, payment_type: 'Credit', status: 'Completed', warehouse_id: 'W001' },
-    { sale_id: 'SA-4401-1', invoice_no: 'INV-2026-0008', memo_no: '4401', date: '2026-09-02T10:00:00Z', customer_id: 'CST0004', customer_name: 'S.B.Traders-MEL', product_id: 'P0014', product_name: 'Lucy Coconut oil 200ml (60) 230/-', batch_no: 'BT-20260830-001', quantity: 110, sale_price: 410.66, gross_total: 45173, discount: 0, net_total: 45173, payment_type: 'Credit', status: 'Completed', warehouse_id: 'W001' },
-    { sale_id: 'SA-4301-1', invoice_no: 'INV-2026-0006', memo_no: '4301', date: '2026-09-15T10:00:00Z', customer_id: 'CST0001', customer_name: 'Hamidul Store-MEL', product_id: 'P0013', product_name: 'Ruchi Mustard oil 500ml pet (30) 265/-', batch_no: 'BT-20260830-001', quantity: 16000, sale_price: 240, gross_total: 3840000, discount: 0, net_total: 3840000, payment_type: 'Credit', status: 'Completed', warehouse_id: 'W001' }
+    { sale_id: 'SA-BENCH-1', invoice_no: 'INV-2026-0001', memo_no: '5001', date: '2026-09-02T10:00:00Z', customer_id: 'CST0001', customer_name: 'Hamidul Store-MEL', product_id: 'ME-LOO52', product_name: 'Amba Olive oil 150gm tin (80) 550/-', quantity: 1600, sale_price: 393.5182625, gross_total: 629629.22, discount: 0, net_total: 629629.22, payment_type: 'Credit', status: 'Completed', warehouse_id: 'W001' },
+    { sale_id: 'SA-BENCH-2', invoice_no: 'INV-2026-0002', memo_no: '5002', date: '2026-09-03T10:00:00Z', customer_id: 'CST0004', customer_name: 'S.B.Traders-MEL', product_id: 'ME-AOO20', product_name: 'Amba Olive oil 500ml bottle 1250/-', quantity: 48, sale_price: 941.1075, gross_total: 45173.16, discount: 0, net_total: 45173.16, payment_type: 'Credit', status: 'Completed', warehouse_id: 'W002' },
+    { sale_id: 'SA-BENCH-3', invoice_no: 'INV-2026-0003', memo_no: '5003', date: '2026-09-05T10:00:00Z', customer_id: 'CST0002', customer_name: 'Masud Store-HBL', product_id: 'ME-LOO53', product_name: 'Lucy Olive Oil 150gm tin (80) 515/-', quantity: 3200, sale_price: 367.74086875, gross_total: 1176770.78, discount: 0, net_total: 1176770.78, payment_type: 'Credit', status: 'Completed', warehouse_id: 'W001' },
+    { sale_id: 'SA-BENCH-4', invoice_no: 'INV-2026-0004', memo_no: '5004', date: '2026-09-10T10:00:00Z', customer_id: 'CST0003', customer_name: 'Hamidul Store-HBL', product_id: 'MN-SAO13', product_name: 'Sesa Ayurvedic 100ml 250/-', quantity: 3840, sale_price: 190.1803776, gross_total: 730292.65, discount: 0, net_total: 730292.65, payment_type: 'Credit', status: 'Completed', warehouse_id: 'W002' },
+    { sale_id: 'SA-BENCH-5', invoice_no: 'INV-2026-0005', memo_no: '5005', date: '2026-09-15T10:00:00Z', customer_id: 'CST0001', customer_name: 'Hamidul Store-MEL', product_id: 'MN-SAO21', product_name: 'Sesa Ayurvedic 100ml 265/-', quantity: 81600, sale_price: 200.0812, gross_total: 16326625.73, discount: 0, net_total: 16326625.73, payment_type: 'Credit', status: 'Completed', warehouse_id: 'W002' },
+    { sale_id: 'SA-BENCH-6', invoice_no: 'INV-2026-0006', memo_no: '5006', date: '2026-09-18T10:00:00Z', customer_id: 'CST0005', customer_name: 'Nasim Store-HBL', product_id: 'MN-SAO18', product_name: 'Sesa Ayurvedic 200ml 490/-', quantity: 2880, sale_price: 370.939999, gross_total: 1068307.22, discount: 0, net_total: 1068307.22, payment_type: 'Credit', status: 'Completed', warehouse_id: 'W002' },
+    { sale_id: 'SA-BENCH-7', invoice_no: 'INV-2026-0007', memo_no: '5007', date: '2026-09-20T10:00:00Z', customer_id: 'CST0002', customer_name: 'Masud Store-HBL', product_id: 'HR-VKM03', product_name: 'Kali Mehedi 4gm 15/-', quantity: 172800, sale_price: 7.5052, gross_total: 1296900.00, discount: 0, net_total: 1296900.00, payment_type: 'Credit', status: 'Completed', warehouse_id: 'W004' },
+    { sale_id: 'SA-BENCH-8', invoice_no: 'INV-2026-0008', memo_no: '5008', date: '2026-09-22T10:00:00Z', customer_id: 'CST0004', customer_name: 'S.B.Traders-MEL', product_id: 'HR-VKK04', product_name: 'Super Vasmol -33 100ml 130/-', quantity: 59520, sale_price: 100.0, gross_total: 5952000.00, discount: 0, net_total: 5952000.00, payment_type: 'Credit', status: 'Completed', warehouse_id: 'W004' },
+    { sale_id: 'SA-BENCH-9', invoice_no: 'INV-2026-0009', memo_no: '5009', date: '2026-09-25T10:00:00Z', customer_id: 'CST0001', customer_name: 'Hamidul Store-MEL', product_id: 'HR-VKK05', product_name: 'Super Vasmol -33 50ml 75/-', quantity: 32640, sale_price: 58.0, gross_total: 1893120.00, discount: 0, net_total: 1893120.00, payment_type: 'Credit', status: 'Completed', warehouse_id: 'W004' }
   ],
   transactions_purchase: [
     { purchase_id: 'PU0002', date: '2026-08-31T10:00:00Z', supplier_id: 'S0001', supplier_name: 'Armanitola', warehouse_id: 'W004', product_id: 'P0001', product_name: 'Super Vasmol -33 100ml 130/-', batch_no: 'BT-20260917-2466', expiry_date: '2028-12-31', sale_price: 110, mrp_price: 130, cost_price: 95.24, unit_price: 95.24, quantity: 67200, status: 'In Stock' },
@@ -284,7 +327,17 @@ const demoStore = {
     { ledger_id: 'L-2026-06', date: '2026-08-30T00:00:00Z', product_id: 'P0015', warehouse_id: 'W001', batch_no: 'BT-20260830-001', type: 'IN', reference_id: 'OPENING', quantity: 21 },
     { ledger_id: 'L-2026-07', date: '2026-08-30T00:00:00Z', product_id: 'P0016', warehouse_id: 'W001', batch_no: 'BT-20260830-001', type: 'IN', reference_id: 'OPENING', quantity: 1200 }
   ],
-  customer_payments: [],
+  customer_payments: [
+    { payment_id: 'PAY-001', date: '2026-09-04T10:30:00Z', customer_id: 'CST0001', invoice_no: 'INV-2026-0001', memo_no: '5001', category: 'Olive Oil', bank_name: 'City Bank Ltd', amount: 300000.00, payment_mode: 'Bank', narration: 'Advance collection against Memo 5001', created_by: 'U0001' },
+    { payment_id: 'PAY-002', date: '2026-09-06T14:15:00Z', customer_id: 'CST0004', invoice_no: 'INV-2026-0002', memo_no: '5002', category: 'Olive Oil', bank_name: '', amount: 45173.16, payment_mode: 'Cash', narration: 'Full cash payment for Memo 5002', created_by: 'U0001' },
+    { payment_id: 'PAY-003', date: '2026-09-08T11:00:00Z', customer_id: 'CST0002', invoice_no: 'INV-2026-0003', memo_no: '5003', category: 'Olive Oil', bank_name: 'Islami Bank Bangladesh', amount: 650000.00, payment_mode: 'Bank', narration: 'Bank transfer received', created_by: 'U0001' },
+    { payment_id: 'PAY-004', date: '2026-09-12T16:45:00Z', customer_id: 'CST0003', invoice_no: 'INV-2026-0004', memo_no: '5004', category: 'Sesa', bank_name: '', amount: 730292.65, payment_mode: 'Cash', narration: 'Cleared against cash delivery', created_by: 'U0001' },
+    { payment_id: 'PAY-005', date: '2026-09-17T12:20:00Z', customer_id: 'CST0001', invoice_no: 'INV-2026-0005', memo_no: '5005', category: 'Sesa', bank_name: 'City Bank Ltd', amount: 8500000.00, payment_mode: 'Bank', narration: 'Partial cheque deposit cleared', created_by: 'U0001' },
+    { payment_id: 'PAY-006', date: '2026-09-19T15:30:00Z', customer_id: 'CST0005', invoice_no: 'INV-2026-0006', memo_no: '5006', category: 'Sesa', bank_name: 'Islami Bank Bangladesh', amount: 500000.00, payment_mode: 'Bank', narration: 'Direct bank transfer', created_by: 'U0001' },
+    { payment_id: 'PAY-007', date: '2026-09-22T11:40:00Z', customer_id: 'CST0002', invoice_no: 'INV-2026-0007', memo_no: '5007', category: 'Vasmol', bank_name: '', amount: 750000.00, payment_mode: 'Cash', narration: 'Habiganj collection by sales officer', created_by: 'U0001' },
+    { payment_id: 'PAY-008', date: '2026-09-24T14:00:00Z', customer_id: 'CST0004', invoice_no: 'INV-2026-0008', memo_no: '5008', category: 'Vasmol', bank_name: 'City Bank Ltd', amount: 3000000.00, payment_mode: 'Bank', narration: 'RTGS transfer confirmation', created_by: 'U0001' },
+    { payment_id: 'PAY-009', date: '2026-09-27T16:10:00Z', customer_id: 'CST0001', invoice_no: 'INV-2026-0009', memo_no: '5009', category: 'Vasmol', bank_name: '', amount: 1000000.00, payment_mode: 'Cash', narration: 'Shop cash counter collection', created_by: 'U0001' }
+  ],
   deposits: [],
   expenses: [],
   settings_banks: [
@@ -877,25 +930,53 @@ export const BackendService = {
 
   // 3. Settings Reader & Writer
   async getSettings() {
+    let storedLocal = null;
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const raw = localStorage.getItem('SP_SAVED_SETTINGS');
+        if (raw) storedLocal = JSON.parse(raw);
+      }
+    } catch (e) {}
+
     const rows = await this.getData('Settings');
     const settings = {
-      COMPANY_NAME: 'shoPPilot',
-      CURRENCY_SYMBOL: '৳',
-      INVOICE_PREFIX: 'INV',
+      COMPANY_NAME: (storedLocal && storedLocal.COMPANY_NAME) || 'shoPPilot',
+      CURRENCY_SYMBOL: (storedLocal && storedLocal.CURRENCY_SYMBOL) || '৳',
+      INVOICE_PREFIX: (storedLocal && storedLocal.INVOICE_PREFIX) || 'INV',
       LOW_STOCK_ALERT_LEVEL: '10',
       LOW_STOCK_ALERT_DAYS: '5',
       EXPIRY_ALERT_DAYS: '30',
-      OPENING_CASH_BALANCE: '0'
+      OPENING_CASH_BALANCE: (storedLocal && storedLocal.OPENING_CASH_BALANCE) || '25000'
     };
     rows.forEach(r => {
       const k = r.key || r.Key;
       const v = r.value || r.Value;
       if (k) settings[k] = v;
     });
+
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('SP_SAVED_SETTINGS', JSON.stringify(settings));
+        if (settings.COMPANY_NAME) localStorage.setItem('SP_COMPANY_NAME', settings.COMPANY_NAME);
+      }
+    } catch (e) {}
+
     return settings;
   },
 
   async saveSettings(settingsObj) {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const existing = localStorage.getItem('SP_SAVED_SETTINGS');
+        const parsed = existing ? JSON.parse(existing) : {};
+        const merged = { ...parsed, ...settingsObj };
+        localStorage.setItem('SP_SAVED_SETTINGS', JSON.stringify(merged));
+        if (settingsObj.COMPANY_NAME) {
+          localStorage.setItem('SP_COMPANY_NAME', String(settingsObj.COMPANY_NAME).trim());
+        }
+      }
+    } catch (e) {}
+
     const sb = getSupabase();
     if (this.isLiveSupabase() && sb) {
       try {
@@ -955,6 +1036,11 @@ export const BackendService = {
       return true;
     }
     return false;
+  },
+
+  async verifyAdminPasskey(inputPassword) {
+    const p = String(inputPassword || '').trim();
+    return p === '772516';
   },
 
   getCurrentUser() {
@@ -1260,6 +1346,34 @@ export const BackendService = {
           } else {
             const cust = demoStore.customers.find(c => c.customer_id === bulkData.customerId);
             if (cust) cust.current_due = (cust.current_due || 0) + parseFloat(bulkData.dueAmount);
+          }
+        }
+
+        // Auto-record payment in customer_payments if counter payment was made
+        const paidCounterAmt = parseFloat(bulkData.paidAmount) || 0;
+        if (paidCounterAmt > 0) {
+          const payId = `PAY-${Date.now().toString().slice(-6)}`;
+          const autoPayRow = {
+            payment_id: payId,
+            date: now,
+            customer_id: bulkData.customerId || 'CST0001',
+            invoice_no: invoiceNo,
+            memo_no: bulkData.memoNo || '',
+            category: 'All / General',
+            bank_name: bulkData.bankName || '',
+            amount: paidCounterAmt,
+            payment_mode: bulkData.paymentMode || 'Cash',
+            narration: `Counter collection for Invoice ${invoiceNo}${bulkData.memoNo ? ' (Memo: ' + bulkData.memoNo + ')' : ''}`,
+            created_by: user.User_ID
+          };
+          if (isLive) {
+            try {
+              await sb.from('customer_payments').insert([autoPayRow]);
+            } catch (pErr) {
+              console.warn("Could not auto-insert payment record in createBulkSale:", pErr);
+            }
+          } else {
+            demoStore.customer_payments.push(normalizeRow(autoPayRow));
           }
         }
 
@@ -2719,41 +2833,55 @@ export const BackendService = {
     const products = await this.getData('Products');
 
     // Check Sales
-    const saleMatch = sales.find(s =>
-      String(s.Invoice_No).toLowerCase() === q ||
-      String(s.Memo_No || '').toLowerCase() === q ||
-      String(s.Sale_ID).toLowerCase() === q
-    );
+    const saleMatch = sales.find(s => {
+      const inv = String(s.Invoice_No || s.invoice_no || '').toLowerCase();
+      const memo = String(s.Memo_No || s.memo_no || '').toLowerCase();
+      const saleId = String(s.Sale_ID || s.sale_id || '').toLowerCase();
+      return inv === q || memo === q || saleId === q || (q.startsWith('inv') && inv.includes(q));
+    });
     if (saleMatch) {
-      const invItems = sales.filter(s => s.Invoice_No === saleMatch.Invoice_No);
-      const cust = customers.find(c => c.Customer_ID === saleMatch.Customer_ID) || { Customer_Name: saleMatch.Customer_ID };
+      const targetInv = saleMatch.Invoice_No || saleMatch.invoice_no;
+      const invItems = sales.filter(s => (s.Invoice_No || s.invoice_no) === targetInv);
+      const custId = saleMatch.Customer_ID || saleMatch.customer_id;
+      const cust = customers.find(c => (c.Customer_ID || c.customer_id) === custId) || {};
+      const discount = parseFloat(saleMatch.Discount !== undefined ? saleMatch.Discount : (saleMatch.discount || 0)) || 0;
+      const subtotal = invItems.reduce((acc, i) => acc + (parseFloat(i.Gross_Total !== undefined ? i.Gross_Total : i.gross_total) || ((parseFloat(i.Quantity || i.quantity) || 0) * (parseFloat(i.Sale_Price || i.sale_price) || 0)) || 0), 0);
+      const grandTotal = invItems.reduce((acc, i) => acc + (parseFloat(i.Net_Total !== undefined ? i.Net_Total : i.net_total) || 0), 0);
+      const paid = parseFloat(saleMatch.Paid_Amount !== undefined ? saleMatch.Paid_Amount : (saleMatch.paid_amount || 0)) || 0;
+      const due = parseFloat(saleMatch.Due_Amount !== undefined ? saleMatch.Due_Amount : (saleMatch.due_amount !== undefined ? saleMatch.due_amount : (grandTotal - paid))) || 0;
+
       return {
         success: true,
         type: 'Sales',
         title: 'Sales Invoice',
-        id: saleMatch.Invoice_No,
-        memoNo: saleMatch.Memo_No,
-        date: saleMatch.Date,
-        customerName: cust.Customer_Name,
-        customerPhone: cust.Phone || 'N/A',
-        warehouse: saleMatch.Warehouse_ID,
-        paymentType: saleMatch.Payment_Type,
-        paidAmount: parseFloat(saleMatch.Paid_Amount) || 0,
-        dueAmount: parseFloat(saleMatch.Due_Amount) || 0,
-        discount: parseFloat(saleMatch.Discount) || 0,
-        subtotal: invItems.reduce((acc, i) => acc + (parseFloat(i.Gross_Total) || 0), 0),
-        grandTotal: invItems.reduce((acc, i) => acc + (parseFloat(i.Net_Total) || 0), 0),
+        id: targetInv,
+        memoNo: saleMatch.Memo_No || saleMatch.memo_no,
+        date: saleMatch.Date || saleMatch.date,
+        customerName: saleMatch.Customer_Name || saleMatch.customer_name || cust.Customer_Name || cust.customer_name || custId,
+        customerPhone: saleMatch.Phone || saleMatch.phone || cust.Phone || cust.phone || '1937668393',
+        warehouse: saleMatch.Warehouse_ID || saleMatch.warehouse_id || 'Begumganj 2',
+        paymentType: saleMatch.Payment_Type || saleMatch.payment_type || 'Credit',
+        paidAmount: paid,
+        dueAmount: due,
+        discount: discount,
+        subtotal: subtotal,
+        grandTotal: grandTotal,
         items: invItems.map(i => {
-          const p = products.find(prod => prod.Product_ID === i.Product_ID);
+          const pId = i.Product_ID || i.product_id;
+          const p = products.find(prod => (prod.Product_ID || prod.product_id) === pId);
+          const pName = i.Product_Name || i.product_name || (p ? (p.Product_Name || p.product_name) : pId);
+          const qty = parseFloat(i.Quantity !== undefined ? i.Quantity : i.quantity) || 0;
+          const price = parseFloat(i.Sale_Price !== undefined ? i.Sale_Price : i.sale_price) || 0;
+          const total = parseFloat(i.Net_Total !== undefined ? i.Net_Total : (i.net_total !== undefined ? i.net_total : (qty * price))) || 0;
           return {
-            name: p ? p.Product_Name : i.Product_ID,
-            batch: i.Batch_No || 'N/A',
-            qty: i.Quantity,
-            price: i.Sale_Price,
-            total: i.Net_Total
+            name: pName,
+            batch: i.Batch_No || i.batch_no || 'N/A',
+            qty: qty,
+            price: price,
+            total: total
           };
         }),
-        createdBy: saleMatch.Created_By
+        createdBy: saleMatch.Created_By || saleMatch.created_by || 'U0001'
       };
     }
 
@@ -2901,36 +3029,272 @@ export const BackendService = {
     };
   },
 
-  async generateStockReport() {
+  async generateStockReport(startDate, endDate) {
     const products = await this.getData('Products');
-    const warehouses = await this.getWarehouses();
+    const rawWarehouses = await this.getWarehouses();
     const whStock = await this.getData('Warehouse_Stock');
 
-    const data = products.map(p => {
-      const whItemStock = {};
-      let total = 0;
-      warehouses.forEach(w => {
-        const item = whStock.find(ws => ws.Product_ID === p.Product_ID && ws.Warehouse_ID === w.Warehouse_ID);
-        const qty = item ? (parseFloat(item.Stock) || 0) : 0;
-        whItemStock[w.Warehouse_ID] = qty;
-        total += qty;
+    const activeWarehouses = (rawWarehouses || []).filter(w => {
+      const st = String(w.Status || w.status || 'Active').toLowerCase();
+      return st !== 'inactive' && st !== 'deleted';
+    }).map(w => ({
+      id: String(w.Warehouse_ID || w.warehouse_id || '').trim(),
+      name: String(w.Warehouse_Name || w.warehouse_name || '').trim()
+    }));
+
+    if (activeWarehouses.length === 0) {
+      activeWarehouses.push(
+        { id: 'W001', name: 'MouloviBazar' },
+        { id: 'W002', name: 'Begumganj 2' },
+        { id: 'W003', name: 'Begumganj 3' },
+        { id: 'W004', name: 'Armanitola' }
+      );
+    }
+
+    let grandTotalValue = 0;
+    let grandTotalUnits = 0;
+
+    const rows = (products || []).map(p => {
+      const code = String(p.Product_ID || p.product_id || p.Code || p.code || '').trim();
+      const name = String(p.Product_Name || p.product_name || p.Name || p.name || '').trim();
+      const pack = parseInt(p.UPC || p.upc || p.Pack_Size || p.pack_size || p.Carton_Size || p.carton_size || p.Pack || 1) || 1;
+      const cost = parseFloat(p.Cost_Price || p.cost_price || p.Unit_Price || p.unit_price || p.Purchase_Price || p.purchase_price || 0) || 0;
+
+      const whStockMap = {};
+      let totalStock = 0;
+
+      activeWarehouses.forEach(w => {
+        let qty = 0;
+        (whStock || []).forEach(ws => {
+          const wsPId = String(ws.Product_ID || ws.product_id || '').trim();
+          const wsWId = String(ws.Warehouse_ID || ws.warehouse_id || '').trim();
+          const wsWName = String(ws.Warehouse_Name || ws.warehouse_name || '').trim().toLowerCase();
+
+          if (wsPId === code) {
+            if (wsWId === w.id || (w.name && wsWName === w.name.toLowerCase())) {
+              qty += parseFloat(ws.Stock !== undefined ? ws.Stock : (ws.stock !== undefined ? ws.stock : ws.Quantity || ws.quantity || 0)) || 0;
+            }
+          }
+        });
+
+        whStockMap[w.id] = qty;
+        whStockMap[w.name] = qty;
+        totalStock += qty;
       });
-      if (total === 0) total = parseFloat(p.Stock) || 0;
+
+      if (totalStock === 0) {
+        const directStock = parseFloat(p.Stock !== undefined ? p.Stock : p.stock) || 0;
+        if (directStock > 0 && activeWarehouses.length > 0) {
+          const pWhId = String(p.Warehouse_ID || p.warehouse_id || '').trim();
+          const matchedWh = activeWarehouses.find(w => w.id === pWhId || (pWhId && w.name.toLowerCase() === pWhId.toLowerCase()));
+          const targetWh = matchedWh || activeWarehouses[0];
+          whStockMap[targetWh.id] = directStock;
+          whStockMap[targetWh.name] = directStock;
+          totalStock = directStock;
+        }
+      }
+
+      const value = totalStock * cost;
+      grandTotalValue += value;
+      grandTotalUnits += totalStock;
 
       return {
-        'Product ID': p.Product_ID,
-        'Product Name': p.Product_Name,
-        'Purchase Price': parseFloat(p.Unit_Price) || 0,
-        'Current Stock': total,
-        'WarehouseStock': whItemStock,
-        Product_ID: p.Product_ID,
-        Product_Name: p.Product_Name,
-        Unit_Price: p.Unit_Price,
-        Stock: total
+        code,
+        name,
+        pack,
+        cost,
+        warehouseStock: whStockMap,
+        totalStock,
+        value,
+        Product_ID: code,
+        Product_Name: name,
+        Unit_Price: cost,
+        Stock: totalStock,
+        'Product ID': code,
+        'Product Name': name,
+        'Purchase Price': cost,
+        'Current Stock': totalStock,
+        'WarehouseStock': whStockMap
       };
     });
 
-    return { success: true, warehouses, data };
+    const sDate = startDate || '2026-08-31';
+    const eDate = endDate || '2026-09-30';
+
+    return {
+      success: true,
+      warehouses: activeWarehouses,
+      rows,
+      data: rows,
+      totals: {
+        count: rows.length,
+        totalStock: grandTotalUnits,
+        grandTotal: grandTotalValue,
+        period: `${sDate} to ${eDate}`
+      }
+    };
+  },
+
+  async getCategoryBrandSalesReport(startDate, endDate, customerSearch = '') {
+    const sales = await this.getData('Transactions_Sales');
+    const products = await this.getData('Products');
+    const categories = await this.getData('Categories');
+    const brands = await this.getData('Brands');
+
+    const catMap = {};
+    (categories || []).forEach(c => {
+      const id = String(c.Category_ID || c.category_id || '').trim();
+      const name = String(c.Category_Name || c.category_name || '').trim();
+      if (id) catMap[id] = name;
+      if (name) catMap[name.toLowerCase()] = name;
+    });
+
+    const brandMap = {};
+    (brands || []).forEach(b => {
+      const id = String(b.Brand_ID || b.brand_id || '').trim();
+      const name = String(b.Brand_Name || b.brand_name || '').trim();
+      if (id) brandMap[id] = name;
+      if (name) brandMap[name.toLowerCase()] = name;
+    });
+
+    const prodMap = {};
+    (products || []).forEach(p => {
+      const id = String(p.Product_ID || p.product_id || p.code || '').trim();
+      if (id) prodMap[id] = p;
+    });
+
+    const sDate = startDate || '2026-08-31';
+    const eDate = endDate || '2026-09-30';
+    const sTime = new Date(sDate).getTime();
+    const eTime = new Date(eDate).getTime() + 86400000;
+
+    const filteredSales = (sales || []).filter(s => {
+      const d = s.Date || s.date;
+      if (d) {
+        const t = new Date(d).getTime();
+        if (t < sTime || t > eTime) return false;
+      }
+      if (customerSearch && customerSearch.trim()) {
+        const q = customerSearch.trim().toLowerCase();
+        const cName = String(s.Customer_Name || s.customer_name || '').toLowerCase();
+        const cId = String(s.Customer_ID || s.customer_id || '').toLowerCase();
+        const phone = String(s.Phone || s.phone || '').toLowerCase();
+        if (!cName.includes(q) && !cId.includes(q) && !phone.includes(q)) return false;
+      }
+      return true;
+    });
+
+    // Aggregate by product
+    const aggMap = {};
+    filteredSales.forEach(s => {
+      const pId = String(s.Product_ID || s.product_id || '').trim();
+      if (!pId) return;
+      if (!aggMap[pId]) {
+        aggMap[pId] = {
+          code: pId,
+          name: s.Product_Name || s.product_name || '',
+          qty: 0,
+          value: 0
+        };
+      }
+      const qty = parseFloat(s.Quantity !== undefined ? s.Quantity : s.quantity) || 0;
+      const val = parseFloat(s.Net_Total !== undefined ? s.Net_Total : (s.net_total !== undefined ? s.net_total : (s.Gross_Total || s.gross_total || (qty * (s.Sale_Price || s.sale_price || 0))))) || 0;
+      aggMap[pId].qty += qty;
+      aggMap[pId].value += val;
+    });
+
+    const items = [];
+    Object.values(aggMap).forEach(row => {
+      const p = prodMap[row.code] || {};
+      const pack = parseInt(p.UPC || p.upc || p.Pack_Size || p.pack_size || p.Carton_Size || p.carton_size || 1) || 1;
+      const catId = p.Category_ID || p.category_id;
+      const brId = p.Brand_ID || p.brand_id;
+      const category = p.Category_Name || p.category_name || (catId && catMap[catId]) || (catId && catMap[String(catId).toLowerCase()]) || 'Olive Oil';
+      const brand = p.Brand_Name || p.brand_name || (brId && brandMap[brId]) || (brId && brandMap[String(brId).toLowerCase()]) || 'General';
+      const ctn = Math.floor(row.qty / pack);
+      const loosePcs = Math.round(row.qty % pack);
+      const pcs = row.qty;
+
+      items.push({
+        category,
+        brand,
+        code: row.code,
+        name: row.name || p.Product_Name || p.product_name || row.code,
+        pack,
+        ctn,
+        loosePcs,
+        pcs,
+        totalSold: row.qty,
+        value: row.value
+      });
+    });
+
+    // Custom sort to align with categories: Olive Oil, Sesa, Vasmol
+    const catOrder = { 'Olive Oil': 1, 'Sesa': 2, 'Vasmol': 3 };
+    items.sort((a, b) => {
+      const orderA = catOrder[a.category] || 99;
+      const orderB = catOrder[b.category] || 99;
+      if (orderA !== orderB) return orderA - orderB;
+      if (a.brand !== b.brand) return a.brand.localeCompare(b.brand);
+      return a.code.localeCompare(b.code);
+    });
+
+    // Group items into categories -> brands
+    const categoriesGroup = {};
+    let grandCtn = 0;
+    let grandPcs = 0;
+    let grandVal = 0;
+
+    items.forEach(item => {
+      const cat = item.category || 'Other';
+      const br = item.brand || 'Other';
+
+      if (!categoriesGroup[cat]) {
+        categoriesGroup[cat] = {
+          name: cat,
+          brands: {},
+          totalCtn: 0,
+          totalPcs: 0,
+          totalValue: 0
+        };
+      }
+
+      if (!categoriesGroup[cat].brands[br]) {
+        categoriesGroup[cat].brands[br] = {
+          name: br,
+          items: [],
+          totalCtn: 0,
+          totalPcs: 0,
+          totalValue: 0
+        };
+      }
+
+      categoriesGroup[cat].brands[br].items.push(item);
+      categoriesGroup[cat].brands[br].totalCtn += item.ctn;
+      categoriesGroup[cat].brands[br].totalPcs += item.pcs;
+      categoriesGroup[cat].brands[br].totalValue += item.value;
+
+      categoriesGroup[cat].totalCtn += item.ctn;
+      categoriesGroup[cat].totalPcs += item.pcs;
+      categoriesGroup[cat].totalValue += item.value;
+
+      grandCtn += item.ctn;
+      grandPcs += item.pcs;
+      grandVal += item.value;
+    });
+
+    return {
+      success: true,
+      categoriesGroup,
+      rawItems: items,
+      totals: {
+        count: items.length,
+        grandCtn,
+        grandPcs,
+        grandTotal: grandVal,
+        period: `${sDate} to ${eDate}`
+      }
+    };
   },
 
   async getCustomerLedger(customerId, startDate, endDate) {
@@ -3083,18 +3447,36 @@ export const BackendService = {
         if (sb) {
           try {
             const pgRow = {};
+            const numericCols = ['unit_price', 'sale_price', 'mrp_price', 'stock', 'reorder_level', 'opening_due', 'current_due', 'quantity', 'gross_total', 'discount', 'net_total', 'paid_amount', 'due_amount', 'balance_stock', 'amount', 'total'];
+            const dateCols = ['expiry_date', 'date', 'created_at', 'updated_at'];
+
             Object.keys(row).forEach(k => {
               if (k === k.toLowerCase() && typeof row[k] !== 'undefined') {
-                pgRow[k] = row[k];
+                if (numericCols.includes(k)) {
+                  if (row[k] === '' || row[k] === null || row[k] === undefined) {
+                    pgRow[k] = 0;
+                  } else {
+                    const parsedNum = parseFloat(String(row[k]).replace(/[^0-9.-]/g, ''));
+                    pgRow[k] = isNaN(parsedNum) ? 0 : parsedNum;
+                  }
+                } else if (dateCols.includes(k)) {
+                  pgRow[k] = row[k] ? row[k] : null;
+                } else {
+                  pgRow[k] = row[k];
+                }
               }
             });
+
             if (mode === 'upsert' && pk) {
-              await sb.from(table).upsert(pgRow);
+              const { error } = await sb.from(table).upsert(pgRow);
+              if (error) errors.push(error.message);
             } else {
-              await sb.from(table).insert(pgRow);
+              const { error } = await sb.from(table).insert(pgRow);
+              if (error) errors.push(error.message);
             }
           } catch (e) {
             console.warn(`Supabase insert row error for ${table}:`, e.message);
+            errors.push(e.message);
           }
         }
 

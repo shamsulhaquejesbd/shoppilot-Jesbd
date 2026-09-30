@@ -4,6 +4,7 @@
  */
 import { initGoogleScriptRunBridge, BackendService } from './supabaseService.js';
 import { getSupabaseCredentials, saveSupabaseCredentials, getSupabase } from './supabaseClient.js';
+import './dataManagement.js';
 import schemaSql from '../supabase_schema.sql?raw';
 
 // Expose on window for direct access or through the google.script.run bridge
@@ -14,8 +15,26 @@ window.saveSupabaseCredentials = saveSupabaseCredentials;
 // Initialize the Google Apps Script bridge so all original code in index.html works unmodified!
 initGoogleScriptRunBridge();
 
+// Sync company brand name across login title and sidebar header
+export function syncCompanyBranding() {
+  let name = 'shoPPilot';
+  try {
+    name = localStorage.getItem('SP_COMPANY_NAME') || 'shoPPilot';
+  } catch (e) {}
+  if (typeof window.applyCompanyNameUI === 'function') {
+    window.applyCompanyNameUI(name);
+  } else {
+    const authTitle = document.getElementById('authCompanyTitle');
+    if (authTitle) authTitle.textContent = name;
+    const sidebarLogo = document.getElementById('sidebarLogoText');
+    if (sidebarLogo) sidebarLogo.textContent = name;
+  }
+}
+syncCompanyBranding();
+
 // Handle login view & session state seamlessly in client
 window.checkAppAuthState = function() {
+  syncCompanyBranding();
   const user = BackendService.getCurrentUser();
   const authView = document.getElementById('authView');
   const sidebar = document.getElementById('sidebar');
@@ -66,8 +85,10 @@ window.checkAppAuthState = function() {
     // Update role-based links
     const role = user.Role || 'Viewer';
     const settingsLink = document.querySelector("a[onclick*=\"switchAppView('settings')\"]");
+    const dataMgmtLink = document.querySelector("a[onclick*=\"switchAppView('data_management')\"]");
     const usersLink = document.querySelector("a[onclick*=\"switchAppView('users')\"]");
     if (settingsLink) settingsLink.style.display = (role === 'Admin' || role === 'Manager') ? 'flex' : 'none';
+    if (dataMgmtLink) dataMgmtLink.style.display = (role === 'Admin' || role === 'Manager') ? 'flex' : 'none';
     if (usersLink) usersLink.style.display = (role === 'Admin' || role === 'Manager') ? 'flex' : 'none';
   }
 };
@@ -97,8 +118,161 @@ const REQUIRED_TABLES = [
   { name: 'settings_customer_types', label: 'Customer Types', desc: 'Retail, Wholesale, Corporate tags' }
 ];
 
-// Global modal for Supabase Connection & Database Setup
-window.openSupabaseConfigModal = function() {
+// Global modal for Supabase Connection & Database Setup with Security Password Gate
+window.promptSupabaseSetupPassword = function() {
+  let gateModal = document.getElementById('supabaseAuthGateModal');
+  if (!gateModal) {
+    gateModal = document.createElement('div');
+    gateModal.id = 'supabaseAuthGateModal';
+    gateModal.className = 'modal';
+    gateModal.style.cssText = 'display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.78); z-index:10001; align-items:center; justify-content:center; backdrop-filter:blur(5px);';
+    gateModal.innerHTML = `
+      <div class="modal-content" style="max-width: 440px; width: 92%; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4); border: 1px solid #e2e8f0; padding: 0;">
+        <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: white; padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #334155;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="width: 36px; height: 36px; border-radius: 8px; background: #ef4444; color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 1rem; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);">
+              <i class="fas fa-lock"></i>
+            </span>
+            <div>
+              <h3 style="margin: 0; font-size: 1.05rem; font-weight: 800; color: white;">Supabase Setup Security</h3>
+              <p style="margin: 0; font-size: 0.72rem; color: #94a3b8;">Authentication required to access database configuration</p>
+            </div>
+          </div>
+          <button type="button" class="btn-close" onclick="closeModal('supabaseAuthGateModal')" style="background: none; border: none; color: #94a3b8; font-size: 1.4rem; cursor: pointer; line-height: 1;">&times;</button>
+        </div>
+
+        <div style="padding: 22px 20px;">
+          <p style="font-size: 0.84rem; color: #334155; margin: 0 0 14px 0; line-height: 1.45;">
+            This area configures live PostgreSQL database keys and schema migrations. Please enter the <strong>Security Passcode</strong> to proceed:
+          </p>
+
+          <div style="margin-bottom: 8px;">
+            <label style="font-size: 0.75rem; font-weight: 700; color: #475569; display: block; margin-bottom: 5px;">
+              SECURITY PASSCODE
+            </label>
+            <div style="position: relative; display: flex; align-items: center;">
+              <span style="position: absolute; left: 12px; color: #94a3b8; font-size: 0.9rem;">
+                <i class="fas fa-key"></i>
+              </span>
+              <input type="password" id="sbGatePasswordInput" class="form-control" placeholder="Enter security code..." 
+                onkeydown="if(event.key==='Enter'){event.preventDefault(); window.submitSupabaseGatePassword();}"
+                style="padding-left: 36px; padding-right: 40px; height: 42px; font-size: 0.9rem; border-radius: 8px; border: 1.5px solid #cbd5e1; width: 100%;">
+              <button type="button" onclick="window.toggleSbGateEye()" style="position: absolute; right: 10px; background: none; border: none; color: #64748b; cursor: pointer; padding: 4px 6px;" title="Toggle Visibility">
+                <i id="sbGateEyeIcon" class="far fa-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <div id="sbGateErrorAlert" style="display: none; padding: 8px 12px; border-radius: 6px; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; font-size: 0.78rem; font-weight: 600; margin-top: 10px; align-items: center; gap: 6px;">
+            <i class="fas fa-exclamation-circle"></i>
+            <span id="sbGateErrorText">Incorrect passcode. Access denied.</span>
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('supabaseAuthGateModal')" style="padding: 8px 16px; font-size: 0.84rem; font-weight: 600; border-radius: 8px;">
+              Cancel
+            </button>
+            <button type="button" id="btnSbGateSubmit" class="btn btn-primary" onclick="window.submitSupabaseGatePassword()" style="padding: 8px 20px; font-size: 0.84rem; font-weight: 700; border-radius: 8px; background: #4361ee; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 10px rgba(67, 97, 238, 0.25);">
+              <i class="fas fa-unlock-alt"></i> Unlock Setup
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(gateModal);
+  }
+
+  // Reset inputs & errors
+  const input = document.getElementById('sbGatePasswordInput');
+  if (input) {
+    input.value = '';
+    input.type = 'password';
+  }
+  const eye = document.getElementById('sbGateEyeIcon');
+  if (eye) eye.className = 'far fa-eye';
+  const errBox = document.getElementById('sbGateErrorAlert');
+  if (errBox) errBox.style.display = 'none';
+
+  gateModal.style.display = 'flex';
+  setTimeout(() => { if (input) input.focus(); }, 120);
+};
+
+window.toggleSbGateEye = function() {
+  const input = document.getElementById('sbGatePasswordInput');
+  const eye = document.getElementById('sbGateEyeIcon');
+  if (!input || !eye) return;
+  if (input.type === 'password') {
+    input.type = 'text';
+    eye.className = 'far fa-eye-slash';
+  } else {
+    input.type = 'password';
+    eye.className = 'far fa-eye';
+  }
+};
+
+window.submitSupabaseGatePassword = async function() {
+  const input = document.getElementById('sbGatePasswordInput');
+  const errBox = document.getElementById('sbGateErrorAlert');
+  const errText = document.getElementById('sbGateErrorText');
+  const btn = document.getElementById('btnSbGateSubmit');
+  const password = input ? input.value.trim() : '';
+
+  if (!password) {
+    if (errBox && errText) {
+      errText.textContent = 'Please enter password to unlock Supabase setup.';
+      errBox.style.display = 'flex';
+    }
+    if (input) input.focus();
+    return;
+  }
+
+  const origBtnText = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+  }
+
+  try {
+    const isValid = await window.BackendService.verifyAdminPasskey(password);
+    if (isValid) {
+      if (errBox) errBox.style.display = 'none';
+      if (window.closeModal) window.closeModal('supabaseAuthGateModal');
+      // Authorized! Open actual modal
+      window.openSupabaseConfigModalInternal();
+    } else {
+      if (errBox && errText) {
+        errText.textContent = 'Incorrect security passcode. Access denied.';
+        errBox.style.display = 'flex';
+      }
+      if (input) {
+        input.select();
+        input.focus();
+      }
+    }
+  } catch (err) {
+    if (errBox && errText) {
+      errText.textContent = 'Authentication error: ' + (err.message || 'Verification failed');
+      errBox.style.display = 'flex';
+    }
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origBtnText;
+    }
+  }
+};
+
+// Protected public entry point: always routes through password gate unless authorized
+window.openSupabaseConfigModal = function(authorized = false) {
+  if (authorized === true) {
+    window.openSupabaseConfigModalInternal();
+  } else {
+    window.promptSupabaseSetupPassword();
+  }
+};
+
+// Internal modal renderer
+window.openSupabaseConfigModalInternal = function() {
   let modal = document.getElementById('supabaseConfigModal');
   if (!modal) {
     const div = document.createElement('div');

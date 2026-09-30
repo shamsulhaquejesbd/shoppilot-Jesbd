@@ -47,8 +47,82 @@ let purchasesHistoryFilter = '';
 const rowsPerPage = 10;
 let prodPage = 1, purchPage = 1, invPage = 1, custPage = 1;
 
+// COMPANY BRANDING DYNAMIC SYNC
+window.applyCompanyNameUI = function(name) {
+    const companyName = (name && String(name).trim()) || 'shoPPilot';
+
+    // 1. Sidebar header
+    const sidebarLogo = document.getElementById('sidebarLogoText');
+    if (sidebarLogo) {
+        sidebarLogo.textContent = companyName;
+        sidebarLogo.title = companyName;
+    }
+
+    // 2. Login page name
+    const authTitle = document.getElementById('authCompanyTitle');
+    if (authTitle) {
+        authTitle.textContent = companyName;
+    }
+
+    // 3. Settings form input (if not actively being typed by user)
+    const compInput = document.querySelector('#systemSettingsForm input[name="COMPANY_NAME"]');
+    if (compInput && document.activeElement !== compInput) {
+        compInput.value = companyName;
+    }
+
+    try {
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('SP_COMPANY_NAME', companyName);
+        }
+    } catch (e) {}
+};
+
+window.loadSystemConfig = function() {
+    google.script.run
+        .withSuccessHandler(settings => {
+            if (!settings) return;
+            const companyName = settings.COMPANY_NAME || 'shoPPilot';
+            window.applyCompanyNameUI(companyName);
+
+            const form = document.getElementById('systemSettingsForm');
+            if (form) {
+                if (form.elements['COMPANY_NAME'] && document.activeElement !== form.elements['COMPANY_NAME']) {
+                    form.elements['COMPANY_NAME'].value = companyName;
+                }
+                if (form.elements['CURRENCY_SYMBOL'] && settings.CURRENCY_SYMBOL && document.activeElement !== form.elements['CURRENCY_SYMBOL']) {
+                    form.elements['CURRENCY_SYMBOL'].value = settings.CURRENCY_SYMBOL;
+                }
+                if (form.elements['OPENING_CASH_BALANCE'] && settings.OPENING_CASH_BALANCE !== undefined && document.activeElement !== form.elements['OPENING_CASH_BALANCE']) {
+                    form.elements['OPENING_CASH_BALANCE'].value = settings.OPENING_CASH_BALANCE;
+                }
+            }
+        })
+        .getSettings();
+};
+
+// Live preview when typing Company Name in settings
+document.addEventListener('input', (e) => {
+    if (e.target && e.target.name === 'COMPANY_NAME' && e.target.closest('#systemSettingsForm')) {
+        const val = e.target.value.trim();
+        const sidebarLogo = document.getElementById('sidebarLogoText');
+        if (sidebarLogo) {
+            sidebarLogo.textContent = val || 'shoPPilot';
+        }
+        const authTitle = document.getElementById('authCompanyTitle');
+        if (authTitle) {
+            authTitle.textContent = val || 'shoPPilot';
+        }
+    }
+});
+
 // Initialize on DOM Ready
 document.addEventListener('DOMContentLoaded', () => {
+    try {
+        const cachedName = localStorage.getItem('SP_COMPANY_NAME');
+        if (cachedName) window.applyCompanyNameUI(cachedName);
+    } catch (e) {}
+    window.loadSystemConfig();
+
     CURRENT_USER = (window.BackendService && window.BackendService.getCurrentUser()) || { User_ID: '', Name: '', Role: '' };
     if (!CURRENT_USER.User_ID) {
         if (window.checkAppAuthState) window.checkAppAuthState();
@@ -99,12 +173,19 @@ window.switchAppView = function(viewName) {
     else if (viewName === 'customers') loadCustomerData();
     else if (viewName === 'suppliers') loadSupplierData();
     else if (viewName === 'reports') initReportsView();
-    else if (viewName === 'settings') refreshMasterLists();
+    else if (viewName === 'settings') {
+        refreshMasterLists();
+        window.loadSystemConfig();
+    }
+    else if (viewName === 'data_management') {
+        if (window.initDataManagementView) window.initDataManagementView();
+    }
     else if (viewName === 'users') loadUsersData();
     else if (viewName === 'deposits') loadDepositsView();
 };
 
 window.loadGlobalMetadata = function() {
+    if (typeof window.loadSystemConfig === 'function') window.loadSystemConfig();
     google.script.run.withSuccessHandler(data => {
         warehouseList = data || [];
         const qpSel = document.getElementById('qp_warehouse_select');
@@ -3033,12 +3114,11 @@ window.renderInventoryMatrixTable = function() {
             </td>
             ${inventoryWarehouses.map(w => {
                 const whStk = (p.Warehouse_Stock && p.Warehouse_Stock[w.Warehouse_ID] !== undefined) ? p.Warehouse_Stock[w.Warehouse_ID] : 0;
-                const isZero = whStk === 0;
-                return `<td style="text-align:center; vertical-align:middle; background:${isZero ? 'transparent' : 'rgba(99, 102, 241, 0.03)'}; padding: 10px 8px;">
+                return `<td style="text-align:center; vertical-align:middle; padding: 10px 8px;">
                     ${renderStockCtnPcsCell(whStk, upc, false)}
                 </td>`;
             }).join('')}
-            <td style="text-align:center; vertical-align:middle; background:rgba(16, 185, 129, 0.04); padding: 10px 8px;">
+            <td style="text-align:center; vertical-align:middle; padding: 10px 8px;">
                 ${renderStockCtnPcsCell(total, upc, true)}
             </td>
             <td style="text-align:center; vertical-align:middle;"><span class="badge ${total <= 10 ? 'badge-low' : 'badge-ok'}">${total <= 10 ? 'Low' : 'In Stock'}</span></td>
@@ -4741,59 +4821,308 @@ window.submitDepositEntry = function() {
 };
 
 // REPORTS
+window.onReportTypeChange = function() {
+    const header = document.getElementById('reportHeader');
+    const content = document.getElementById('reportContent');
+    const countEl = document.getElementById('rpt_count');
+    const totalEl = document.getElementById('rpt_total');
+    const periodEl = document.getElementById('rpt_period');
+
+    if (header) header.innerHTML = '';
+    if (content) {
+        content.innerHTML = '<tr><td colspan="12" class="text-center" style="padding: 36px 20px; color: #64748b; font-size: 0.92rem;"><i class="fas fa-filter" style="margin-right: 8px; color: #3b82f6;"></i> Filters changed. Click <strong>Generate</strong> to generate this report.</td></tr>';
+    }
+    if (countEl) countEl.textContent = '0';
+    if (totalEl) totalEl.textContent = '৳ 0.00';
+    if (periodEl) periodEl.textContent = '-';
+};
+
 window.initReportsView = function() {
     const s = document.getElementById('rptStartDate');
-    if (s) s.value = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+    if (s && !s.value) s.value = '2026-08-31';
     const e = document.getElementById('rptEndDate');
-    if (e) e.value = new Date().toISOString().split('T')[0];
+    if (e && !e.value) e.value = '2026-09-30';
+    const t = document.getElementById('rptTypeSelect');
+    if (t && !t.value) t.value = 'category_brand_sales';
+    window.generateAnalyticalReport();
 };
 
 window.generateAnalyticalReport = function() {
-    const type = document.getElementById('rptTypeSelect')?.value;
-    const start = document.getElementById('rptStartDate')?.value;
-    const end = document.getElementById('rptEndDate')?.value;
+    const type = document.getElementById('rptTypeSelect')?.value || 'category_brand_sales';
+    const start = document.getElementById('rptStartDate')?.value || '2026-08-31';
+    const end = document.getElementById('rptEndDate')?.value || '2026-09-30';
 
-    if (type === 'collection') {
+    const periodEl = document.getElementById('rpt_period');
+    if (periodEl) {
+        periodEl.textContent = (start && end) ? `${start} to ${end}` : 'Current Stock';
+    }
+
+    if (type === 'category_brand_sales') {
+        const customerSearch = document.getElementById('rptCustomerSearch')?.value || '';
         google.script.run.withSuccessHandler(res => {
-            document.getElementById('reportHeader').innerHTML = `<tr><th>Date</th><th>Customer</th><th>Memo</th>${res.categories.map(c=>`<th>${c}</th>`).join('')}<th>Total</th></tr>`;
-            document.getElementById('reportContent').innerHTML = res.rows.map(r => `
-                <tr>
-                    <td>${r.date}</td>
-                    <td><strong>${r.customerName}</strong></td>
-                    <td>${r.memoNo}</td>
-                    ${res.categories.map(c=>`<td>${r.categories[c] ? '৳ '+formatBD(r.categories[c]) : '-'}</td>`).join('')}
-                    <td><strong>৳ ${formatBD(r.totalCollection)}</strong></td>
+            const countEl = document.getElementById('rpt_count');
+            const totalEl = document.getElementById('rpt_total');
+
+            if (!res || !res.categoriesGroup || Object.keys(res.categoriesGroup).length === 0) {
+                document.getElementById('reportHeader').innerHTML = '';
+                document.getElementById('reportContent').innerHTML = '<tr><td colspan="7" class="text-center" style="padding:32px; color:#ef4444;">No sales records found for selected filters.</td></tr>';
+                if (countEl) countEl.textContent = '0 Items';
+                if (totalEl) totalEl.textContent = '৳ 0.00';
+                return;
+            }
+
+            // Header
+            document.getElementById('reportHeader').innerHTML = `
+                <tr style="background: #e0f2fe; border-bottom: 2px solid #bae6fd;">
+                    <th style="padding: 12px 14px; font-size: 0.76rem; font-weight: 800; color: #0369a1; text-transform: uppercase; letter-spacing: 0.04em; text-align: left;">CATEGORY</th>
+                    <th style="padding: 12px 14px; font-size: 0.76rem; font-weight: 800; color: #0369a1; text-transform: uppercase; letter-spacing: 0.04em; text-align: left;">BRAND</th>
+                    <th style="padding: 12px 14px; font-size: 0.76rem; font-weight: 800; color: #0369a1; text-transform: uppercase; letter-spacing: 0.04em; text-align: left;">CODE</th>
+                    <th style="padding: 12px 14px; font-size: 0.76rem; font-weight: 800; color: #0369a1; text-transform: uppercase; letter-spacing: 0.04em; text-align: left;">PRODUCT NAME</th>
+                    <th style="padding: 12px 14px; font-size: 0.76rem; font-weight: 800; color: #0369a1; text-transform: uppercase; letter-spacing: 0.04em; text-align: center;">PACK</th>
+                    <th style="padding: 12px 14px; font-size: 0.76rem; font-weight: 800; color: #0369a1; text-transform: uppercase; letter-spacing: 0.04em; text-align: center;">TOTAL SOLD</th>
+                    <th style="padding: 12px 14px; font-size: 0.76rem; font-weight: 800; color: #0369a1; text-transform: uppercase; letter-spacing: 0.04em; text-align: right;">SALES VALUE (৳)</th>
+                </tr>
+            `;
+
+            let rowsHtml = '';
+
+            Object.values(res.categoriesGroup).forEach(cat => {
+                Object.values(cat.brands).forEach(br => {
+                    br.items.forEach(item => {
+                        const bg = '#ffffff';
+                        const ctnPcsDisplay = item.loosePcs > 0 
+                            ? `<span style="color: #059669; font-weight: 700;">${item.ctn}c ${item.loosePcs}p</span> <span style="color: #2563eb; font-weight: 700;">(${item.pcs})</span>`
+                            : `<span style="color: #059669; font-weight: 700;">${item.ctn}</span> <span style="color: #2563eb; font-weight: 700;">(${item.pcs})</span>`;
+
+                        rowsHtml += `
+                            <tr style="background: ${bg}; border-bottom: 1px solid #f1f5f9; transition: background 0.15s ease;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='${bg}'">
+                                <td style="padding: 12px 14px; font-size: 0.84rem; color: #475569; text-align: left;">${escapeHtml(item.category)}</td>
+                                <td style="padding: 12px 14px; font-size: 0.84rem; color: #475569; text-align: left;">${escapeHtml(item.brand)}</td>
+                                <td style="padding: 12px 14px; font-size: 0.84rem; font-weight: 600; color: #334155; text-align: left;">${escapeHtml(item.code)}</td>
+                                <td style="padding: 12px 14px; font-size: 0.84rem; font-weight: 700; color: #0f172a; text-align: left;">${escapeHtml(item.name)}</td>
+                                <td style="padding: 12px 14px; font-size: 0.84rem; font-weight: 700; color: #1e293b; text-align: center;">${item.pack}</td>
+                                <td style="padding: 12px 14px; font-size: 0.85rem; text-align: center; white-space: nowrap;">${ctnPcsDisplay}</td>
+                                <td style="padding: 12px 14px; font-size: 0.85rem; font-weight: 800; color: #0f172a; text-align: right; white-space: nowrap;">৳ ${formatBD(item.value, 2)}</td>
+                            </tr>
+                        `;
+                    });
+
+                    // Brand Subtotal Row
+                    rowsHtml += `
+                        <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0;">
+                            <td colspan="5" style="padding: 10px 14px; font-size: 0.84rem; font-weight: 700; color: #334155; text-align: right;">${escapeHtml(br.name)} Subtotal:</td>
+                            <td style="padding: 10px 14px; font-size: 0.85rem; font-weight: 800; color: #0f172a; text-align: center; white-space: nowrap;">${br.totalCtn} (${br.totalPcs})</td>
+                            <td style="padding: 10px 14px; font-size: 0.85rem; font-weight: 800; color: #0f172a; text-align: right; white-space: nowrap;">৳ ${formatBD(br.totalValue, 2)}</td>
+                        </tr>
+                    `;
+                });
+
+                // Category Subtotal Row
+                rowsHtml += `
+                    <tr style="background: #f1f5f9; border-bottom: 1px solid #cbd5e1;">
+                        <td colspan="5" style="padding: 11px 14px; font-size: 0.85rem; font-weight: 800; color: #0f172a; text-align: right;">${escapeHtml(cat.name)} Subtotal:</td>
+                        <td style="padding: 11px 14px; font-size: 0.86rem; font-weight: 800; color: #0f172a; text-align: center; white-space: nowrap;">${cat.totalCtn} (${cat.totalPcs})</td>
+                        <td style="padding: 11px 14px; font-size: 0.86rem; font-weight: 800; color: #0f172a; text-align: right; white-space: nowrap;">৳ ${formatBD(cat.totalValue, 2)}</td>
+                    </tr>
+                `;
+            });
+
+            // Grand Total Row
+            rowsHtml += `
+                <tr style="background: #e2e8f0; border-top: 2px solid #cbd5e1; border-bottom: 2px solid #cbd5e1;">
+                    <td colspan="5" style="padding: 13px 14px; font-size: 0.86rem; font-weight: 900; color: #0f172a; text-align: right; letter-spacing: 0.03em;">GRAND TOTAL:</td>
+                    <td style="padding: 13px 14px; font-size: 0.88rem; font-weight: 900; color: #0f172a; text-align: center; white-space: nowrap;">${res.totals.grandCtn} (${res.totals.grandPcs})</td>
+                    <td style="padding: 13px 14px; font-size: 0.88rem; font-weight: 900; color: #0f172a; text-align: right; white-space: nowrap;">৳ ${formatBD(res.totals.grandTotal, 2)}</td>
+                </tr>
+            `;
+
+            document.getElementById('reportContent').innerHTML = rowsHtml;
+
+            if (countEl) countEl.textContent = `${res.totals.count} Items`;
+            if (totalEl) totalEl.textContent = '৳ ' + formatBD(res.totals.grandTotal, 2);
+            if (periodEl) periodEl.textContent = res.totals.period || `${start} to ${end}`;
+        }).getCategoryBrandSalesReport(start, end, customerSearch);
+    } else if (type === 'collection') {
+        google.script.run.withSuccessHandler(res => {
+            document.getElementById('reportHeader').innerHTML = `
+                <tr style="background: #e0f2fe; border-bottom: 2px solid #bae6fd;">
+                    <th style="padding: 12px 14px; font-size: 0.76rem; font-weight: 800; color: #0369a1; text-transform: uppercase;">Date</th>
+                    <th style="padding: 12px 14px; font-size: 0.76rem; font-weight: 800; color: #0369a1; text-transform: uppercase;">Customer</th>
+                    <th style="padding: 12px 14px; font-size: 0.76rem; font-weight: 800; color: #0369a1; text-transform: uppercase;">Memo</th>
+                    ${(res.categories || []).map(c=>`<th style="padding: 12px 14px; font-size: 0.76rem; font-weight: 800; color: #0369a1; text-transform: uppercase;">${escapeHtml(c)}</th>`).join('')}
+                    <th style="padding: 12px 14px; font-size: 0.76rem; font-weight: 800; color: #0369a1; text-transform: uppercase; text-align: right;">Total</th>
+                </tr>
+            `;
+            document.getElementById('reportContent').innerHTML = (res.rows || []).map(r => `
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 12px 14px;">${escapeHtml(r.date)}</td>
+                    <td style="padding: 12px 14px;"><strong>${escapeHtml(r.customerName)}</strong></td>
+                    <td style="padding: 12px 14px;">${escapeHtml(r.memoNo)}</td>
+                    ${(res.categories || []).map(c=>`<td style="padding: 12px 14px;">${r.categories && r.categories[c] ? '৳ '+formatBD(r.categories[c], 2) : '-'}</td>`).join('')}
+                    <td style="padding: 12px 14px; text-align: right;"><strong>৳ ${formatBD(r.totalCollection, 2)}</strong></td>
                 </tr>`).join('');
-            document.getElementById('rpt_count').textContent = res.rows.length;
-            document.getElementById('rpt_total').textContent = '৳ ' + formatBD(res.grandTotal);
+            document.getElementById('rpt_count').textContent = res.rows ? res.rows.length : 0;
+            document.getElementById('rpt_total').textContent = '৳ ' + formatBD(res.grandTotal, 2);
         }).getCollectionReport(start, end);
     } else if (type === 'deposit_report') {
         google.script.run.withSuccessHandler(res => {
-            document.getElementById('reportHeader').innerHTML = `<tr><th>Date</th><th>Slip</th><th>Destination</th><th>Bank</th><th>Expense</th><th>Note</th></tr>`;
-            document.getElementById('reportContent').innerHTML = res.rows.map(r => `
-                <tr>
-                    <td>${r.date}</td>
-                    <td>${r.slipNo}</td>
-                    <td><strong>${r.destination}</strong></td>
-                    <td>৳ ${formatBD(r.bankDeposit)}</td>
-                    <td>৳ ${formatBD(r.expenseOther)}</td>
-                    <td>${r.note}</td>
+            document.getElementById('reportHeader').innerHTML = `
+                <tr style="background: #e0f2fe; border-bottom: 2px solid #bae6fd;">
+                    <th style="padding: 12px 14px; font-size: 0.76rem; font-weight: 800; color: #0369a1; text-transform: uppercase;">Date</th>
+                    <th style="padding: 12px 14px; font-size: 0.76rem; font-weight: 800; color: #0369a1; text-transform: uppercase;">Slip</th>
+                    <th style="padding: 12px 14px; font-size: 0.76rem; font-weight: 800; color: #0369a1; text-transform: uppercase;">Destination</th>
+                    <th style="padding: 12px 14px; font-size: 0.76rem; font-weight: 800; color: #0369a1; text-transform: uppercase;">Bank</th>
+                    <th style="padding: 12px 14px; font-size: 0.76rem; font-weight: 800; color: #0369a1; text-transform: uppercase;">Expense</th>
+                    <th style="padding: 12px 14px; font-size: 0.76rem; font-weight: 800; color: #0369a1; text-transform: uppercase;">Note</th>
+                </tr>
+            `;
+            document.getElementById('reportContent').innerHTML = (res.rows || []).map(r => `
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 12px 14px;">${escapeHtml(r.date)}</td>
+                    <td style="padding: 12px 14px;">${escapeHtml(r.slipNo)}</td>
+                    <td style="padding: 12px 14px;"><strong>${escapeHtml(r.destination)}</strong></td>
+                    <td style="padding: 12px 14px;">৳ ${formatBD(r.bankDeposit, 2)}</td>
+                    <td style="padding: 12px 14px;">৳ ${formatBD(r.expenseOther, 2)}</td>
+                    <td style="padding: 12px 14px;">${escapeHtml(r.note)}</td>
                 </tr>`).join('');
-            document.getElementById('rpt_count').textContent = res.rows.length;
-            document.getElementById('rpt_total').textContent = '৳ ' + formatBD(res.totals.grandTotal);
+            document.getElementById('rpt_count').textContent = res.rows ? res.rows.length : 0;
+            document.getElementById('rpt_total').textContent = '৳ ' + formatBD(res.totals && res.totals.grandTotal, 2);
         }).getDepositReport(start, end);
     } else {
+        // CURRENT STOCK REPORT - Multi-Warehouse Breakdown (Matches user screenshot)
         google.script.run.withSuccessHandler(res => {
-            document.getElementById('reportHeader').innerHTML = `<tr><th>Code</th><th>Product Name</th><th>Stock</th><th>Price</th></tr>`;
-            document.getElementById('reportContent').innerHTML = res.data.map(p => `
-                <tr>
-                    <td><strong>${p.Product_ID}</strong></td>
-                    <td>${p.Product_Name}</td>
-                    <td>${p.Stock}</td>
-                    <td>৳ ${formatBD(p.Unit_Price)}</td>
-                </tr>`).join('');
-            document.getElementById('rpt_count').textContent = res.data.length;
-        }).generateStockReport();
+            if (!res || (!res.rows && !res.data)) {
+                document.getElementById('reportContent').innerHTML = '<tr><td colspan="10" class="text-center" style="padding:24px; color:#ef4444;">No stock records found.</td></tr>';
+                return;
+            }
+
+            const rows = res.rows || res.data || [];
+            const rawWarehouses = res.warehouses || [
+                { id: 'W001', name: 'MouloviBazar' },
+                { id: 'W002', name: 'Begumganj 2' },
+                { id: 'W003', name: 'Begumganj 3' },
+                { id: 'W004', name: 'Armanitola' }
+            ];
+
+            // Normalize warehouses list
+            const warehouses = rawWarehouses.map(w => ({
+                id: String(w.id || w.Warehouse_ID || w.warehouse_id || '').trim(),
+                name: String(w.name || w.Warehouse_Name || w.warehouse_name || w.id || '').trim()
+            }));
+
+            // Build dynamic header
+            const headerHtml = `
+                <tr style="background: #e0f2fe; border-bottom: 2px solid #bae6fd;">
+                    <th style="padding: 12px 14px; font-size: 0.76rem; font-weight: 800; color: #0369a1; text-transform: uppercase; letter-spacing: 0.04em; text-align: left;">CODE</th>
+                    <th style="padding: 12px 14px; font-size: 0.76rem; font-weight: 800; color: #0369a1; text-transform: uppercase; letter-spacing: 0.04em; text-align: left;">PRODUCT NAME</th>
+                    <th style="padding: 12px 14px; font-size: 0.76rem; font-weight: 800; color: #0369a1; text-transform: uppercase; letter-spacing: 0.04em; text-align: center;">PACK</th>
+                    <th style="padding: 12px 14px; font-size: 0.76rem; font-weight: 800; color: #0369a1; text-transform: uppercase; letter-spacing: 0.04em; text-align: right;">COST</th>
+                    ${warehouses.map(w => `
+                        <th style="padding: 12px 14px; font-size: 0.76rem; font-weight: 800; color: #047857; text-transform: uppercase; letter-spacing: 0.04em; text-align: center;">
+                            ${escapeHtml(w.name.toUpperCase())}
+                        </th>
+                    `).join('')}
+                    <th style="padding: 12px 14px; font-size: 0.76rem; font-weight: 800; color: #1d4ed8; text-transform: uppercase; letter-spacing: 0.04em; text-align: center;">TOTAL STOCK</th>
+                    <th style="padding: 12px 14px; font-size: 0.76rem; font-weight: 800; color: #0369a1; text-transform: uppercase; letter-spacing: 0.04em; text-align: right;">VALUE (৳)</th>
+                </tr>
+            `;
+            document.getElementById('reportHeader').innerHTML = headerHtml;
+
+            // Warehouse cell formatting: e.g. "24 (288)", "131c 56p (12632)", "0c 21p (21)", or "0"
+            const formatWhStockCell = (qty, packSize) => {
+                const totalPcs = parseFloat(qty) || 0;
+                if (totalPcs === 0) return '0';
+                const pack = parseInt(packSize) || 1;
+                if (pack <= 1) return String(totalPcs);
+                const c = Math.floor(totalPcs / pack);
+                const p = Math.round(totalPcs % pack);
+                if (p === 0) {
+                    return `${c} (${totalPcs})`;
+                } else {
+                    return `${c}c ${p}p (${totalPcs})`;
+                }
+            };
+
+            let grandTotalStock = 0;
+            let grandTotalValue = 0;
+
+            const rowsHtml = rows.map((r, idx) => {
+                const code = r.code || r.Product_ID || r['Product ID'] || '';
+                const name = r.name || r.Product_Name || r['Product Name'] || '';
+                const pack = parseInt(r.pack || r.UPC || r.Pack_Size || r.Carton_Size || 1) || 1;
+                const cost = parseFloat(r.cost !== undefined ? r.cost : (r.Unit_Price || r['Purchase Price'] || 0)) || 0;
+                const whStockMap = r.warehouseStock || r.WarehouseStock || {};
+
+                let computedTotalStock = 0;
+                const whCells = warehouses.map(w => {
+                    const wId = w.id;
+                    const wName = w.name;
+                    const qty = parseFloat(
+                        whStockMap[wId] !== undefined ? whStockMap[wId] :
+                        (whStockMap[wName] !== undefined ? whStockMap[wName] :
+                        (whStockMap[wName.toLowerCase()] !== undefined ? whStockMap[wName.toLowerCase()] : 0))
+                    ) || 0;
+                    computedTotalStock += qty;
+                    const cellFormatted = formatWhStockCell(qty, pack);
+                    return `
+                        <td style="padding: 12px 14px; font-size: 0.84rem; font-weight: 700; color: #059669; text-align: center; white-space: nowrap;">
+                            ${cellFormatted}
+                        </td>
+                    `;
+                }).join('');
+
+                const finalTotalStock = (r.totalStock !== undefined && r.totalStock > 0) ? r.totalStock : (computedTotalStock > 0 ? computedTotalStock : (parseFloat(r.Stock) || 0));
+                const finalValue = r.value !== undefined ? r.value : (finalTotalStock * cost);
+                const totalStockFormatted = formatWhStockCell(finalTotalStock, pack);
+
+                grandTotalStock += finalTotalStock;
+                grandTotalValue += finalValue;
+
+                const bg = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
+
+                return `
+                    <tr style="background: ${bg}; border-bottom: 1px solid #f1f5f9; transition: background 0.15s ease;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='${bg}'">
+                        <td style="padding: 12px 14px; font-size: 0.84rem; font-weight: 700; color: #1e293b; white-space: nowrap; text-align: left;">
+                            ${escapeHtml(code)}
+                        </td>
+                        <td style="padding: 12px 14px; font-size: 0.84rem; font-weight: 600; color: #334155; text-align: left;">
+                            ${escapeHtml(name)}
+                        </td>
+                        <td style="padding: 12px 14px; font-size: 0.84rem; font-weight: 700; color: #1e293b; text-align: center;">
+                            ${pack}
+                        </td>
+                        <td style="padding: 12px 14px; font-size: 0.84rem; font-weight: 600; color: #334155; text-align: right; white-space: nowrap;">
+                            ৳${cost.toFixed(2)}
+                        </td>
+                        ${whCells}
+                        <td style="padding: 12px 14px; font-size: 0.86rem; font-weight: 800; color: #2563eb; text-align: center; white-space: nowrap;">
+                            ${totalStockFormatted}
+                        </td>
+                        <td style="padding: 12px 14px; font-size: 0.84rem; font-weight: 700; color: #0f172a; text-align: right; white-space: nowrap;">
+                            ৳ ${formatBD(finalValue, 2)}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            document.getElementById('reportContent').innerHTML = rowsHtml;
+
+            // Summary cards
+            const countEl = document.getElementById('rpt_count');
+            const totalEl = document.getElementById('rpt_total');
+
+            if (countEl) countEl.textContent = rows.length;
+            if (totalEl) totalEl.textContent = '৳ ' + formatBD(grandTotalValue, 2);
+            if (periodEl) {
+                if (start && end) {
+                    periodEl.textContent = `${start} to ${end}`;
+                } else if (res.totals && res.totals.period) {
+                    periodEl.textContent = res.totals.period;
+                } else {
+                    periodEl.textContent = '2026-08-31 to 2026-09-30';
+                }
+            }
+        }).generateStockReport(start, end);
     }
 };
 
@@ -4811,28 +5140,186 @@ window.exportTableToExcel = function() {
 // UNIVERSAL LOOKUP
 window.openDocLookupModal = function() {
     const modal = document.getElementById('docLookupModal');
-    if (modal && modal.style) modal.style.display = 'flex';
+    if (modal && modal.style) {
+        modal.style.display = 'flex';
+        setTimeout(() => {
+            const inp = document.getElementById('docLookupInput');
+            if (inp) inp.focus();
+        }, 100);
+    }
 };
 
 window.executeUniversalLookup = function() {
     const q = document.getElementById('docLookupInput')?.value.trim();
     if (!q) return;
+
+    const emptyArea = document.getElementById('docLookupEmptyArea');
+    const resultArea = document.getElementById('docLookupResultArea');
+
+    if (emptyArea) {
+        emptyArea.style.display = 'block';
+        emptyArea.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size: 1.8rem; color: #3b82f6; margin-bottom: 8px; display: block;"></i> Searching database...';
+    }
+    if (resultArea) resultArea.style.display = 'none';
+
     google.script.run.withSuccessHandler(res => {
-        if (res.success) {
-            document.getElementById('docLookupEmptyArea').style.display = 'none';
-            document.getElementById('docLookupResultArea').style.display = 'block';
-            document.getElementById('docLookupResultArea').innerHTML = `
-                <div style="background:white; padding:18px; border-radius:12px; border:1px solid #e2e8f0;">
-                    <span class="badge badge-info">${res.title}</span>
-                    <h3 style="margin:8px 0;">${res.id}</h3>
-                    <p style="color:#64748b;">Date: ${res.date ? String(res.date).split('T')[0] : ''}</p>
-                    <div style="margin:12px 0;">
-                        ${(res.items || []).map(i => `<div><strong>${i.name}</strong> x ${i.qty} = ৳${i.total}</div>`).join('')}
-                    </div>
-                    <h4 style="color:#4361ee;">Grand Total: ৳${formatBD(res.grandTotal)}</h4>
-                </div>`;
-        } else showAlertModal("Not Found", res.error);
+        if (res && res.success) {
+            if (emptyArea) emptyArea.style.display = 'none';
+            if (resultArea) {
+                resultArea.style.display = 'block';
+                resultArea.innerHTML = renderUniversalDocCard(res);
+            }
+        } else {
+            if (emptyArea) {
+                emptyArea.style.display = 'block';
+                emptyArea.innerHTML = `<i class="fas fa-exclamation-circle" style="font-size: 2rem; color: #ef4444; margin-bottom: 8px; display: block;"></i> <span style="color: #ef4444; font-weight: 700;">Not Found:</span> No document found matching "${escapeHtml(q)}"`;
+            }
+            if (resultArea) resultArea.style.display = 'none';
+        }
     }).findUniversalInvoice(q);
+};
+
+window.renderUniversalDocCard = function(res) {
+    if (!res) return '';
+
+    const formatMoney = (val) => {
+        const num = parseFloat(val) || 0;
+        return num.toFixed(2);
+    };
+
+    const formatDocDate = (d) => {
+        if (!d) return 'N/A';
+        try {
+            const parts = String(d).split('T')[0].split('-');
+            if (parts.length === 3) {
+                return `${parseInt(parts[1], 10)}/${parseInt(parts[2], 10)}/${parts[0]}`;
+            }
+            return String(d);
+        } catch(e) {
+            return String(d);
+        }
+    };
+
+    const isSales = res.type === 'Sales';
+    const isPurchase = res.type === 'Purchase';
+    const isExpense = res.type === 'Expense';
+
+    let badgeIcon = 'fas fa-shopping-cart';
+    let badgeBg = '#dcfce7';
+    let badgeColor = '#15803d';
+    let badgeText = res.title || 'Sales Invoice';
+
+    if (isPurchase) {
+        badgeIcon = 'fas fa-truck-loading';
+        badgeBg = '#e0e7ff';
+        badgeColor = '#4338ca';
+        badgeText = 'Purchase Procurement';
+    } else if (isExpense) {
+        badgeIcon = 'fas fa-file-invoice-dollar';
+        badgeBg = '#fef3c7';
+        badgeColor = '#b45309';
+        badgeText = 'Operating Expense';
+    }
+
+    const items = res.items || [];
+    const itemsHtml = items.map(i => `
+        <tr style="border-bottom: 1px solid #f1f5f9; font-size: 0.85rem;">
+            <td style="padding: 10px 12px; font-weight: 600; color: #1e293b; max-width: 200px; word-break: break-word;">${escapeHtml(i.name || '')}</td>
+            <td style="padding: 10px 10px; color: #64748b; font-size: 0.8rem;">${escapeHtml(i.batch || 'N/A')}</td>
+            <td style="padding: 10px 8px; text-align: center; font-weight: 800; color: #0f172a;">${i.qty}</td>
+            <td style="padding: 10px 10px; text-align: right; color: #334155;">৳${formatMoney(i.price || i.cost || 0)}</td>
+            <td style="padding: 10px 12px; text-align: right; font-weight: 800; color: #0f172a;">৳${formatMoney(i.total || 0)}</td>
+        </tr>
+    `).join('');
+
+    const subtotal = res.subtotal !== undefined ? res.subtotal : res.grandTotal;
+    const discount = parseFloat(res.discount) || 0;
+    const grandTotal = parseFloat(res.grandTotal) || 0;
+    const paidAmount = parseFloat(res.paidAmount) || 0;
+    const dueAmount = res.dueAmount !== undefined ? parseFloat(res.dueAmount) : (grandTotal - paidAmount);
+
+    return `
+    <div style="background: white; border-radius: 14px; border: 1px solid #e2e8f0; padding: 20px; box-shadow: 0 4px 14px rgba(0,0,0,0.03);">
+        <!-- Top Title & Date/Mode Row -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+            <div>
+                <span style="background: ${badgeBg}; color: ${badgeColor}; font-weight: 700; font-size: 0.78rem; padding: 4px 10px; border-radius: 20px; display: inline-flex; align-items: center; gap: 5px;">
+                    <i class="${badgeIcon}"></i> ${escapeHtml(badgeText)}
+                </span>
+                <div style="font-size: 1.45rem; font-weight: 800; color: #0f172a; margin-top: 6px; letter-spacing: -0.01em;">
+                    ${escapeHtml(res.id || '')}
+                </div>
+                ${res.memoNo ? `<div style="color: #4361ee; font-weight: 700; font-size: 0.88rem; margin-top: 2px;">Memo No: ${escapeHtml(String(res.memoNo))}</div>` : ''}
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 0.72rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">DATE</div>
+                <div style="font-size: 1.05rem; font-weight: 800; color: #0f172a; margin-bottom: 4px;">
+                    ${formatDocDate(res.date)}
+                </div>
+                ${res.paymentType ? `
+                    <span style="background: #e0f2fe; color: #0284c7; font-weight: 700; font-size: 0.75rem; padding: 2px 10px; border-radius: 12px; display: inline-block;">
+                        ${escapeHtml(res.paymentType)}
+                    </span>
+                ` : ''}
+            </div>
+        </div>
+
+        <!-- 2-Column Info Grid -->
+        <div style="background: #f8fafc; border-radius: 10px; padding: 12px 16px; margin-bottom: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.86rem; border: 1px solid #f1f5f9;">
+            <div>
+                <div><strong style="color: #0f172a;">${isPurchase ? 'Supplier:' : (isExpense ? 'Category:' : 'Customer:')}</strong> <span style="color: #334155;">${escapeHtml(res.customerName || res.supplierName || res.category || 'N/A')}</span></div>
+                <div style="margin-top: 4px;"><strong style="color: #0f172a;">${isExpense ? 'Note:' : 'Phone:'}</strong> <span style="color: #334155;">${escapeHtml(isExpense ? (res.note || 'N/A') : (res.customerPhone || res.supplierPhone || 'N/A'))}</span></div>
+            </div>
+            <div>
+                <div><strong style="color: #0f172a;">Warehouse:</strong> <span style="color: #334155;">${escapeHtml(res.warehouse || 'Begumganj 2')}</span></div>
+                <div style="margin-top: 4px;"><strong style="color: #0f172a;">Billed By:</strong> <span style="color: #334155;">${escapeHtml(res.createdBy || 'U0001')}</span></div>
+            </div>
+        </div>
+
+        ${items.length > 0 ? `
+        <!-- Items Table -->
+        <div class="table-responsive" style="border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 14px; overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; min-width: 480px;">
+                <thead>
+                    <tr style="background: #e0f2fe; color: #0284c7; font-size: 0.75rem; font-weight: 800; text-transform: uppercase;">
+                        <th style="padding: 10px 12px; text-align: left; width: 34%;">Item / Product</th>
+                        <th style="padding: 10px 10px; text-align: left; width: 26%;">Batch</th>
+                        <th style="padding: 10px 8px; text-align: center; width: 12%;">Qty</th>
+                        <th style="padding: 10px 10px; text-align: right; width: 14%;">Price</th>
+                        <th style="padding: 10px 12px; text-align: right; width: 14%;">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${itemsHtml}
+                </tbody>
+            </table>
+        </div>
+        ` : ''}
+
+        <!-- Totals Summary Box -->
+        <div style="background: #f8fafc; border-radius: 10px; padding: 14px 18px; border: 1px solid #f1f5f9;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 0.9rem;">
+                <span style="color: #334155; font-weight: 600;">Subtotal:</span>
+                <span style="color: #0f172a; font-weight: 800;">৳ ${formatMoney(subtotal)}</span>
+            </div>
+            ${discount > 0 ? `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 0.9rem;">
+                <span style="color: #ea580c; font-weight: 700;">Discount:</span>
+                <span style="color: #ea580c; font-weight: 800;">- ৳ ${formatMoney(discount)}</span>
+            </div>
+            ` : ''}
+            <div style="border-top: 1px solid #e2e8f0; margin: 10px 0;"></div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="color: #4361ee; font-size: 1.15rem; font-weight: 800;">Grand Total:</span>
+                <span style="color: #4361ee; font-size: 1.35rem; font-weight: 800;">৳ ${formatMoney(grandTotal)}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; padding-top: 4px;">
+                <span style="color: #64748b; font-weight: 600;">Paid: ৳ ${formatMoney(paidAmount)}</span>
+                <span style="color: ${dueAmount > 0 ? '#ef4444' : '#10b981'}; font-weight: 800;">Due: ৳ ${formatMoney(dueAmount)}</span>
+            </div>
+        </div>
+    </div>
+    `;
 };
 
 // SETTINGS & MASTER DATA
@@ -4864,23 +5351,22 @@ function renderMasterList(containerId, data, nameKey, idKey, sheetName) {
         const encStatus = encodeURIComponent(String(status));
 
         return `
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:9px 12px; border-bottom:1px solid #f1f5f9; background:${isActive ? '#ffffff' : '#fafafa'}; border-radius:6px; margin-bottom:5px; box-shadow:0 1px 2px rgba(0,0,0,0.03); opacity:${isActive ? '1' : '0.82'};">
-            <div style="display:flex; align-items:center; gap:8px; overflow:hidden; min-width:0;">
-                <span class="badge badge-info" style="font-size:0.75rem; padding:2px 7px; font-weight:700; flex-shrink:0;">${safeId}</span>
-                <span style="font-weight:600; font-size:0.92rem; color:${isActive ? '#1e293b' : '#64748b'}; text-overflow:ellipsis; overflow:hidden; white-space:nowrap; ${isActive ? '' : 'text-decoration:line-through;'}" title="${safeName}">${safeName}</span>
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; border-bottom:1px solid #f1f5f9; background:${isActive ? '#ffffff' : '#fafafa'}; border-radius:6px; margin-bottom:4px; box-shadow:0 1px 2px rgba(0,0,0,0.02); opacity:${isActive ? '1' : '0.8'};">
+            <div style="display:flex; align-items:center; gap:6px; overflow:hidden; min-width:0; flex:1; margin-right:8px;">
+                <span class="badge badge-info" style="font-size:0.68rem; padding:1px 5px; font-weight:700; flex-shrink:0; border-radius:4px;">${safeId}</span>
+                <span style="font-weight:600; font-size:0.8rem; color:${isActive ? '#1e293b' : '#64748b'}; text-overflow:ellipsis; overflow:hidden; white-space:nowrap; ${isActive ? '' : 'text-decoration:line-through;'}" title="${safeName}">${safeName}</span>
             </div>
-            <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+            <div style="display:flex; align-items:center; gap:5px; flex-shrink:0;">
                 <button type="button" class="badge ${isActive ? 'badge-success' : 'badge-danger'}" 
-                    style="border:none; cursor:pointer; font-size:0.75rem; padding:4px 9px; display:inline-flex; align-items:center; gap:4px; transition:0.2s;" 
+                    style="border:none; cursor:pointer; width:24px; height:24px; border-radius:5px; padding:0; display:inline-flex; align-items:center; justify-content:center; transition:0.2s;" 
                     onclick="toggleMasterStatus('${sheetName}', decodeURIComponent('${encId}'))" 
-                    title="Click to toggle Active / Inactive">
-                    <i class="fas ${isActive ? 'fa-check-circle' : 'fa-ban'}" style="font-size:10px;"></i>
-                    <span>${safeStatus}</span>
+                    title="${safeStatus} - Click to toggle">
+                    <i class="fas ${isActive ? 'fa-check-circle' : 'fa-ban'}" style="font-size:11px;"></i>
                 </button>
-                <button type="button" class="btn-icon btn-edit" style="width:28px; height:28px; border-radius:6px; flex-shrink:0;" 
+                <button type="button" class="btn-icon btn-edit" style="width:24px; height:24px; border-radius:5px; padding:0; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;" 
                     onclick="openEditMasterModal('${sheetName}', decodeURIComponent('${encId}'), decodeURIComponent('${encName}'), decodeURIComponent('${encStatus}'))" 
                     title="Edit ${safeName}">
-                    <i class="fas fa-edit" style="font-size:12px;"></i>
+                    <i class="fas fa-edit" style="font-size:11px;"></i>
                 </button>
             </div>
         </div>`;
@@ -5068,12 +5554,24 @@ window.addMasterItem = function(sheetName, inputId) {
 
 window.saveSystemConfig = function() {
     const form = document.getElementById('systemSettingsForm');
+    if (!form) return;
     const data = new FormData(form);
     const obj = {};
     data.forEach((v, k) => obj[k] = v);
-    google.script.run.withSuccessHandler(() => {
-        showAlertModal("Success", "Settings saved successfully.");
-    }).saveSettings(obj);
+
+    if (obj.COMPANY_NAME) {
+        window.applyCompanyNameUI(obj.COMPANY_NAME);
+    }
+
+    google.script.run
+        .withSuccessHandler(() => {
+            showAlertModal("Success", "Settings saved successfully.");
+            window.loadSystemConfig();
+        })
+        .withFailureHandler(err => {
+            showAlertModal("Error", (err && err.message) ? err.message : "Failed to save settings.");
+        })
+        .saveSettings(obj);
 };
 
 // USERS
@@ -5505,3 +6003,435 @@ function renderWhValueSharePieChart(warehouses) {
         plugins: [calloutPlugin]
     });
 }
+
+// MULTI-PRODUCT PURCHASE INBOUND (PAGE MODAL)
+let mpp_cart = [];
+let mpp_selected_product = null;
+let mpp_master_products = [];
+let isMppProcessing = false;
+
+window.openMultiPurchaseModal = function() {
+    const modal = document.getElementById('multiPurchaseModal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+
+    mpp_cart = [];
+    mpp_selected_product = null;
+    isMppProcessing = false;
+
+    // Reset entry fields
+    const searchInp = document.getElementById('mpp_prod_search');
+    if (searchInp) searchInp.value = '';
+    const batchInp = document.getElementById('mpp_batch');
+    if (batchInp) batchInp.value = '';
+    const expInp = document.getElementById('mpp_expiry');
+    if (expInp) {
+        const d = new Date();
+        d.setFullYear(d.getFullYear() + 2);
+        expInp.value = d.toISOString().split('T')[0];
+    }
+    const ctnQty = document.getElementById('mpp_ctn_qty');
+    if (ctnQty) ctnQty.value = '0';
+    const loosePcs = document.getElementById('mpp_loose_pcs');
+    if (loosePcs) loosePcs.value = '0';
+    const paidPcs = document.getElementById('mpp_paid_pcs');
+    if (paidPcs) paidPcs.value = '0';
+    const freePcs = document.getElementById('mpp_free_pcs');
+    if (freePcs) freePcs.value = '0';
+    const ctnCost = document.getElementById('mpp_ctn_cost');
+    if (ctnCost) ctnCost.value = '';
+    const unitCost = document.getElementById('mpp_unit_cost');
+    if (unitCost) unitCost.value = '';
+    const salePrice = document.getElementById('mpp_sale_price');
+    if (salePrice) salePrice.value = '';
+    const mrpPrice = document.getElementById('mpp_mrp_price');
+    if (mrpPrice) mrpPrice.value = '';
+
+    // Date
+    const pDate = document.getElementById('mpp_purchase_date');
+    if (pDate) {
+        pDate.value = new Date().toISOString().split('T')[0];
+    }
+
+    // Populate Warehouses
+    google.script.run.withSuccessHandler(data => {
+        const whSel = document.getElementById('mpp_warehouse_select');
+        if (whSel && data) {
+            whSel.innerHTML = data.map(w => `<option value="${w.Warehouse_ID || w.warehouse_id}">${w.Warehouse_Name || w.warehouse_name}</option>`).join('');
+            const mb = data.find(w => (w.Warehouse_Name || w.warehouse_name || '').toLowerCase().includes('moulovi'));
+            if (mb) whSel.value = mb.Warehouse_ID || mb.warehouse_id;
+        }
+    }).getWarehouses();
+
+    // Populate Suppliers
+    google.script.run.withSuccessHandler(data => {
+        const suppSel = document.getElementById('mpp_supplier_select');
+        if (suppSel && data) {
+            suppSel.innerHTML = '<option value="">Select Supplier</option>' + (data || []).map(s => `<option value="${s.Supplier_ID || s.supplier_id}">${s.Supplier_Name || s.supplier_name}</option>`).join('');
+        }
+    }).getData('Suppliers');
+
+    // Populate Products
+    google.script.run.withSuccessHandler(prods => {
+        mpp_master_products = prods || [];
+    }).getData('Products');
+
+    mpp_renderTable();
+};
+
+window.mpp_searchProducts = function(val) {
+    const dropdown = document.getElementById('mpp_prod_dropdown');
+    if (!dropdown) return;
+    const q = String(val || '').trim().toLowerCase();
+    if (!q) {
+        dropdown.style.display = 'none';
+        return;
+    }
+    const matches = (mpp_master_products || []).filter(p => {
+        const name = String(p.Product_Name || p.product_name || '').toLowerCase();
+        const id = String(p.Product_ID || p.product_id || '').toLowerCase();
+        const barcode = String(p.Barcode || p.barcode || '').toLowerCase();
+        return name.includes(q) || id.includes(q) || barcode.includes(q);
+    });
+
+    if (!matches.length) {
+        dropdown.innerHTML = '<div style="padding: 10px 14px; color: #94a3b8; font-size: 0.82rem;">No matching products found</div>';
+        dropdown.style.display = 'block';
+        return;
+    }
+
+    dropdown.innerHTML = matches.slice(0, 10).map(p => {
+        const pId = p.Product_ID || p.product_id;
+        const pName = p.Product_Name || p.product_name;
+        const packSize = parseInt(p.Pack_Size || p.pack_size || p.upc || p.Carton_Size || 1) || 1;
+        const cost = parseFloat(p.Cost_Price || p.cost_price || p.unit_price || 0) || 0;
+        return `
+            <div onclick="mpp_selectProduct('${pId}')" style="padding: 9px 14px; border-bottom: 1px solid #f1f5f9; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
+                <div>
+                    <strong style="color: #0f172a;">${escapeHtml(pName)}</strong>
+                    <div style="font-size: 0.74rem; color: #64748b;">Code: ${pId} | Pack: ${packSize} pcs</div>
+                </div>
+                <div style="text-align: right; color: #059669; font-weight: 700; font-size: 0.82rem;">
+                    ৳ ${cost.toFixed(2)}
+                </div>
+            </div>
+        `;
+    }).join('');
+    dropdown.style.display = 'block';
+};
+
+window.mpp_selectProduct = function(pId) {
+    const p = (mpp_master_products || []).find(item => (item.Product_ID || item.product_id) === pId);
+    if (!p) return;
+    mpp_selected_product = p;
+
+    const searchInp = document.getElementById('mpp_prod_search');
+    if (searchInp) searchInp.value = p.Product_Name || p.product_name;
+
+    const dropdown = document.getElementById('mpp_prod_dropdown');
+    if (dropdown) dropdown.style.display = 'none';
+
+    const packSize = parseInt(p.Pack_Size || p.pack_size || p.upc || p.Carton_Size || 1) || 1;
+    const unitCostVal = parseFloat(p.Cost_Price || p.cost_price || p.unit_price || 0) || 0;
+    const ctnCostVal = unitCostVal * packSize;
+    const salePriceVal = parseFloat(p.Sale_Price || p.sale_price || 0) || 0;
+    const mrpPriceVal = parseFloat(p.MRP_Price || p.mrp_price || p.mrp || 0) || 0;
+
+    const unitCost = document.getElementById('mpp_unit_cost');
+    if (unitCost) unitCost.value = unitCostVal > 0 ? unitCostVal.toFixed(2) : '';
+
+    const ctnCost = document.getElementById('mpp_ctn_cost');
+    if (ctnCost) ctnCost.value = ctnCostVal > 0 ? ctnCostVal.toFixed(2) : '';
+
+    const salePrice = document.getElementById('mpp_sale_price');
+    if (salePrice) salePrice.value = salePriceVal > 0 ? salePriceVal.toFixed(2) : '';
+
+    const mrpPrice = document.getElementById('mpp_mrp_price');
+    if (mrpPrice) mrpPrice.value = mrpPriceVal > 0 ? mrpPriceVal.toFixed(2) : '';
+
+    const batchInp = document.getElementById('mpp_batch');
+    if (batchInp && !batchInp.value) {
+        batchInp.value = 'BT-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-' + Math.floor(100 + Math.random() * 900);
+    }
+
+    const ctnQty = document.getElementById('mpp_ctn_qty');
+    if (ctnQty) {
+        ctnQty.value = '0';
+        ctnQty.focus();
+    }
+    const loosePcs = document.getElementById('mpp_loose_pcs');
+    if (loosePcs) loosePcs.value = '0';
+    const paidPcs = document.getElementById('mpp_paid_pcs');
+    if (paidPcs) paidPcs.value = '0';
+    const freePcs = document.getElementById('mpp_free_pcs');
+    if (freePcs) freePcs.value = '0';
+};
+
+window.mpp_getPackSize = function() {
+    if (!mpp_selected_product) return 1;
+    const p = mpp_selected_product;
+    return parseInt(p.Pack_Size || p.pack_size || p.upc || p.Carton_Size || 1) || 1;
+};
+
+window.mpp_calcFromCtn = function() {
+    const packSize = mpp_getPackSize();
+    const ctn = Math.max(0, parseInt(document.getElementById('mpp_ctn_qty')?.value) || 0);
+    const loose = Math.max(0, parseInt(document.getElementById('mpp_loose_pcs')?.value) || 0);
+    const paid = (ctn * packSize) + loose;
+    const paidEl = document.getElementById('mpp_paid_pcs');
+    if (paidEl) paidEl.value = paid;
+};
+
+window.mpp_calcFromLoose = function() {
+    mpp_calcFromCtn();
+};
+
+window.mpp_calcFromPaid = function() {
+    const packSize = mpp_getPackSize();
+    const paid = Math.max(0, parseInt(document.getElementById('mpp_paid_pcs')?.value) || 0);
+    const ctn = Math.floor(paid / packSize);
+    const loose = paid % packSize;
+    const ctnEl = document.getElementById('mpp_ctn_qty');
+    if (ctnEl) ctnEl.value = ctn;
+    const looseEl = document.getElementById('mpp_loose_pcs');
+    if (looseEl) looseEl.value = loose;
+};
+
+window.mpp_calcFromCtnCost = function() {
+    const packSize = mpp_getPackSize();
+    const ctnCost = parseFloat(document.getElementById('mpp_ctn_cost')?.value) || 0;
+    const unitEl = document.getElementById('mpp_unit_cost');
+    if (unitEl && packSize > 0) {
+        unitEl.value = (ctnCost / packSize).toFixed(2);
+    }
+};
+
+window.mpp_calcFromUnitCost = function() {
+    const packSize = mpp_getPackSize();
+    const unitCost = parseFloat(document.getElementById('mpp_unit_cost')?.value) || 0;
+    const ctnEl = document.getElementById('mpp_ctn_cost');
+    if (ctnEl) {
+        ctnEl.value = (unitCost * packSize).toFixed(2);
+    }
+};
+
+window.mpp_addItem = function() {
+    if (!mpp_selected_product) {
+        return showAlertModal("Select Product", "Please search and select a product first.");
+    }
+    const p = mpp_selected_product;
+    const pId = p.Product_ID || p.product_id;
+    const pName = p.Product_Name || p.product_name;
+
+    const ctn = Math.max(0, parseInt(document.getElementById('mpp_ctn_qty')?.value) || 0);
+    const loose = Math.max(0, parseInt(document.getElementById('mpp_loose_pcs')?.value) || 0);
+    const paid = Math.max(0, parseInt(document.getElementById('mpp_paid_pcs')?.value) || 0);
+    const free = Math.max(0, parseInt(document.getElementById('mpp_free_pcs')?.value) || 0);
+
+    const inboundStk = paid + free;
+    if (inboundStk <= 0) {
+        return showAlertModal("Validation", "Please enter quantity (Paid PCS or Free PCS) greater than 0.");
+    }
+
+    const unitCost = Math.max(0, parseFloat(document.getElementById('mpp_unit_cost')?.value) || 0);
+    const salePrice = Math.max(0, parseFloat(document.getElementById('mpp_sale_price')?.value) || 0);
+    const mrpPrice = Math.max(0, parseFloat(document.getElementById('mpp_mrp_price')?.value) || 0);
+    const batch = document.getElementById('mpp_batch')?.value?.trim() || ('BT-' + Date.now().toString().slice(-6));
+    const expiry = document.getElementById('mpp_expiry')?.value?.trim() || '2028-12-31';
+
+    const lineTotal = Math.round(paid * unitCost);
+
+    mpp_cart.push({
+        id: pId,
+        name: pName,
+        batch: batch,
+        expiry: expiry,
+        ctnQty: ctn,
+        loosePcs: loose,
+        paidQty: paid,
+        freeQty: free,
+        inboundStk: inboundStk,
+        unitCost: unitCost,
+        salePrice: salePrice,
+        mrpPrice: mrpPrice,
+        total: lineTotal
+    });
+
+    // Reset entry fields
+    mpp_selected_product = null;
+    const searchInp = document.getElementById('mpp_prod_search');
+    if (searchInp) {
+        searchInp.value = '';
+        searchInp.focus();
+    }
+    const batchInp = document.getElementById('mpp_batch');
+    if (batchInp) batchInp.value = '';
+    const ctnQty = document.getElementById('mpp_ctn_qty');
+    if (ctnQty) ctnQty.value = '0';
+    const loosePcs = document.getElementById('mpp_loose_pcs');
+    if (loosePcs) loosePcs.value = '0';
+    const paidPcs = document.getElementById('mpp_paid_pcs');
+    if (paidPcs) paidPcs.value = '0';
+    const freePcs = document.getElementById('mpp_free_pcs');
+    if (freePcs) freePcs.value = '0';
+    const ctnCost = document.getElementById('mpp_ctn_cost');
+    if (ctnCost) ctnCost.value = '';
+    const unitCostEl = document.getElementById('mpp_unit_cost');
+    if (unitCostEl) unitCostEl.value = '';
+    const salePriceEl = document.getElementById('mpp_sale_price');
+    if (salePriceEl) salePriceEl.value = '';
+    const mrpPriceEl = document.getElementById('mpp_mrp_price');
+    if (mrpPriceEl) mrpPriceEl.value = '';
+
+    mpp_renderTable();
+};
+
+window.mpp_removeItem = function(idx) {
+    mpp_cart.splice(idx, 1);
+    mpp_renderTable();
+};
+
+window.mpp_renderTable = function() {
+    const tbody = document.getElementById('mpp_table_body');
+    const emptyRow = document.getElementById('mpp_empty_row');
+    const grandTotalEl = document.getElementById('mpp_grand_total');
+
+    if (!tbody) return;
+
+    if (!mpp_cart.length) {
+        tbody.innerHTML = '';
+        if (emptyRow) emptyRow.style.display = 'block';
+        if (grandTotalEl) grandTotalEl.textContent = '৳ 0';
+        return;
+    }
+
+    if (emptyRow) emptyRow.style.display = 'none';
+
+    let grandTotal = 0;
+    tbody.innerHTML = mpp_cart.map((item, idx) => {
+        grandTotal += item.total;
+        return `
+            <tr style="border-bottom: 1px solid #f1f5f9; font-size: 0.86rem;">
+                <td style="padding: 10px 14px; font-weight: 700; color: #0f172a; max-width: 220px; word-break: break-word;">
+                    ${escapeHtml(item.name)}
+                </td>
+                <td style="padding: 10px 10px; color: #475569; font-size: 0.8rem; font-family: monospace;">
+                    ${escapeHtml(item.batch)}
+                </td>
+                <td style="padding: 10px 10px; color: #64748b; font-size: 0.8rem;">
+                    ${escapeHtml(item.expiry)}
+                </td>
+                <td style="padding: 10px 8px; text-align: center; font-weight: 700; color: #0f172a;">
+                    ${item.paidQty}
+                </td>
+                <td style="padding: 10px 8px; text-align: center; font-weight: 800; color: #16a34a;">
+                    ${item.freeQty > 0 ? `<span style="background: #dcfce7; padding: 2px 8px; border-radius: 12px; font-size: 0.78rem;">${item.freeQty}</span>` : '0'}
+                </td>
+                <td style="padding: 10px 8px; text-align: center; font-weight: 800; color: #2563eb;">
+                    ${item.inboundStk}
+                </td>
+                <td style="padding: 10px 10px; text-align: right; color: #334155;">
+                    ৳ ${item.unitCost.toFixed(2)}
+                </td>
+                <td style="padding: 10px 14px; text-align: right; font-weight: 800; color: #0f172a;">
+                    ৳ ${formatBD(item.total)}
+                </td>
+                <td style="padding: 10px 8px; text-align: center;">
+                    <button type="button" onclick="mpp_removeItem(${idx})" style="background: none; border: none; color: #ef4444; cursor: pointer; padding: 4px; font-size: 0.9rem;" title="Remove Item">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    if (grandTotalEl) {
+        grandTotalEl.textContent = `৳ ${formatBD(grandTotal)}`;
+    }
+};
+
+window.mpp_submit = function() {
+    if (isMppProcessing) return;
+
+    if (!mpp_cart.length) {
+        return showAlertModal("Validation", "Please add at least one product before saving the purchase.");
+    }
+
+    const whId = document.getElementById('mpp_warehouse_select')?.value;
+    if (!whId) {
+        return showAlertModal("Validation", "Please select a Destination Warehouse.");
+    }
+
+    const suppId = document.getElementById('mpp_supplier_select')?.value;
+    if (!suppId) {
+        return showAlertModal("Validation", "Please select a Supplier.");
+    }
+
+    const pDate = document.getElementById('mpp_purchase_date')?.value || new Date().toISOString().split('T')[0];
+    const invoiceNo = 'PO-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-' + Math.floor(100 + Math.random() * 900);
+
+    const saveBtn = document.getElementById('mpp_btn_save');
+    const origHtml = saveBtn ? saveBtn.innerHTML : '';
+
+    isMppProcessing = true;
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    }
+
+    const payload = {
+        warehouseId: whId,
+        supplierId: suppId,
+        date: pDate,
+        invoiceNo: invoiceNo,
+        items: mpp_cart.map(i => ({
+            id: i.id,
+            name: i.name,
+            batch: i.batch,
+            expiry: i.expiry,
+            qty: i.paidQty,
+            freeQty: i.freeQty,
+            price: i.unitCost,
+            salePrice: i.salePrice,
+            mrpPrice: i.mrpPrice,
+            total: i.total
+        }))
+    };
+
+    google.script.run
+        .withSuccessHandler(res => {
+            isMppProcessing = false;
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = origHtml;
+            }
+            if (res && res.success) {
+                closeModal('multiPurchaseModal');
+                showAlertModal("Purchase Inbound Saved", `Successfully recorded ${mpp_cart.length} items with PO number: ${res.purchaseId || invoiceNo}`);
+                loadPurchasesData();
+                if (window.loadDashboardData) loadDashboardData();
+                if (window.loadWarehouseInfoData) loadWarehouseInfoData();
+                if (window.loadInventoryData) loadInventoryData();
+            } else {
+                showAlertModal("Error", (res && res.error) || "Failed to process purchase entry.");
+            }
+        })
+        .withFailureHandler(err => {
+            isMppProcessing = false;
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = origHtml;
+            }
+            showAlertModal("Error", (err && err.message) ? err.message : "Failed to record purchase.");
+        })
+        .createBulkPurchase(payload);
+};
+
+// Close dropdown on outside click
+document.addEventListener('click', function(e) {
+    const dropdown = document.getElementById('mpp_prod_dropdown');
+    const searchInp = document.getElementById('mpp_prod_search');
+    if (dropdown && searchInp && !dropdown.contains(e.target) && e.target !== searchInp) {
+        dropdown.style.display = 'none';
+    }
+});
